@@ -84,6 +84,8 @@ namespace Catshakes
                 return;
             }
 
+            ApplySelectedSkin();
+
             if (!gridManager.LoadLevel(level))
             {
                 return;
@@ -92,6 +94,30 @@ namespace Catshakes
             if (cameraFitter != null)
             {
                 cameraFitter.Fit(gridManager.Coords);
+            }
+        }
+
+        /// <summary>Dresses both cats (and the handshake picture) in the skin chosen in the shop.</summary>
+        private void ApplySelectedSkin()
+        {
+            SkinCatalog catalog = SkinCatalog.Load();
+            SkinCatalog.Skin skin = catalog != null ? catalog.Selected : null;
+            if (skin == null)
+            {
+                return;
+            }
+
+            foreach (CatId id in new[] { CatId.CatA, CatId.CatB })
+            {
+                CatArmController cat = gridManager.GetCat(id);
+                if (cat != null)
+                {
+                    cat.ApplySkin(skin);
+                }
+            }
+            if (skin.handshake != null)
+            {
+                handshakeSprite = skin.handshake;
             }
         }
 

@@ -275,6 +275,40 @@ namespace Catshakes
             return armPath.Contains(cell);
         }
 
+        /// <summary>
+        /// Swaps in the artwork of <paramref name="skin"/> (body, hand, arm, elbow). Pictures the skin does not have keep
+        /// the cat's own ones. Call it before <see cref="Initialize"/>, which puts the pictures in place.
+        /// </summary>
+        public void ApplySkin(SkinCatalog.Skin skin)
+        {
+            if (skin == null)
+            {
+                return;
+            }
+
+            if (skin.body != null)
+            {
+                bodySprite = skin.body;
+                bodyNoArmSprite = skin.bodyNoArm;
+            }
+
+            if (skin.hand != null && skin.hand != handSprite)
+            {
+                handSprite = skin.hand;
+                alignedHandSprite = null;
+            }
+
+            if (skin.straightArm != null)
+            {
+                straightArmSprite = skin.straightArm;
+            }
+
+            if (skin.elbowArm != null)
+            {
+                elbowArmSprite = skin.elbowArm;
+            }
+        }
+
         public void Initialize(GridSpace gridSpace, Vector2Int root, Vector2Int handStart, Direction facing, int steps)
         {
             StopAnimationRoutine();
@@ -733,10 +767,13 @@ namespace Catshakes
 
         private bool UsesTexturedArm => straightArmSprite != null;
 
-        /// <summary>True when the body sprite in use already draws the start of the arm (cat facing left or right).</summary>
-        private bool BodyHasArm => bodySprite != null && (restFacing == Direction.Left || restFacing == Direction.Right);
+        /// <summary>True when the body sprite already draws the start of the arm; the body is then turned toward the hand start.</summary>
+        private bool BodyHasArm => bodySprite != null;
 
-        /// <summary>Puts the body and hand sprites in place and mirrors the body when the cat faces left.</summary>
+        /// <summary>
+        /// Puts the body and hand sprites in place. The body is turned so the arm drawn on it points at the hand's start cell:
+        /// mirrored when the cat faces left, a quarter turn when it faces up or down.
+        /// </summary>
         private void ApplyArtwork()
         {
             SpriteRenderer bodyRenderer = bodyVisual != null ? bodyVisual.GetComponentInChildren<SpriteRenderer>() : null;
@@ -753,11 +790,15 @@ namespace Catshakes
 
                 bodyRenderer.flipX = BodyHasArm && restFacing == Direction.Left;
 
-                // The label sits in the empty corner beside the head, which is mirrored together with the body.
+                float bodyAngle = BodyHasArm && (restFacing == Direction.Up || restFacing == Direction.Down) ? restFacing.ToAngleDegrees() : 0f;
+                bodyVisual.localRotation = Quaternion.Euler(0f, 0f, bodyAngle);
+
+                // The label sits in the empty corner beside the head, which turns together with the body; the text stays upright.
                 if (bodySprite != null && stepsLabel != null)
                 {
                     float x = bodyRenderer.flipX ? -stepsLabelOffset.x : stepsLabelOffset.x;
                     stepsLabel.transform.localPosition = new Vector3(x, stepsLabelOffset.y, stepsLabel.transform.localPosition.z);
+                    stepsLabel.transform.rotation = Quaternion.identity;
                 }
             }
 
@@ -814,8 +855,10 @@ namespace Catshakes
             if (armTextureMaterial == null)
             {
                 Shader shader = Shader.Find("Sprites/Default");
-                armTextureMaterial = new Material(shader) { name = "ArmLine (straight-arm)", mainTexture = texture };
+                armTextureMaterial = new Material(shader) { name = "ArmLine (straight-arm)" };
             }
+
+            armTextureMaterial.mainTexture = texture;
 
             armTextureMaterial.mainTextureScale = new Vector2(1f / coords.CellSize, 1f);
             // Behind the body, so the arm comes out of the cat's side, and below the hand. The elbows lie on top of the lines.

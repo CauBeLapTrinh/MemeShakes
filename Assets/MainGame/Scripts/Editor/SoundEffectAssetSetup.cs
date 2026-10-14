@@ -34,6 +34,7 @@ namespace Catshakes
 
             CreateSoundManagerPrefab(move, push, win, lose);
             FillMissingClips();
+            AssignGameplayMusic();
             CreateWinEffectPrefab();
 
             AssetDatabase.SaveAssets();
@@ -139,8 +140,80 @@ namespace Catshakes
                 }
             }
 
+            // Every other sound goes into the extra clip list, one entry per sound.
+            SerializedProperty extras = serialized.FindProperty("extraClips");
+            if (extras != null)
+            {
+                foreach (SoundId id in (SoundId[])System.Enum.GetValues(typeof(SoundId)))
+                {
+                    if (id <= SoundId.Switch || HasExtraClip(extras, id))
+                    {
+                        continue;
+                    }
+
+                    int index = extras.arraySize;
+                    extras.arraySize++;
+                    SerializedProperty entry = extras.GetArrayElementAtIndex(index);
+                    entry.FindPropertyRelative("id").enumValueIndex = (int)id;
+                    entry.FindPropertyRelative("clip").objectReferenceValue = EnsureSound(id);
+                }
+            }
+
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(prefab);
+        }
+
+        /// <summary>Renders the gameplay loop to BGM_Gameplay.wav (once) and puts it on the SoundManager prefab when empty.</summary>
+        private static void AssignGameplayMusic()
+        {
+            string path = SoundFolder + "/BGM_Gameplay.wav";
+            if (!File.Exists(path))
+            {
+                const int sampleRate = 44100;
+                File.WriteAllBytes(path, EncodeWav16(EditorTools.ChiptuneMusic.RenderGameplayLoop(sampleRate), sampleRate));
+                AssetDatabase.ImportAsset(path);
+
+                // Long music: stream it compressed instead of keeping the whole wav in memory.
+                if (AssetImporter.GetAtPath(path) is AudioImporter importer)
+                {
+                    AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+                    settings.loadType = AudioClipLoadType.Streaming;
+                    settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                    settings.quality = 0.6f;
+                    importer.defaultSampleSettings = settings;
+                    importer.SaveAndReimport();
+                }
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SoundManagerPrefabPath);
+            SoundManager manager = prefab != null ? prefab.GetComponent<SoundManager>() : null;
+            if (manager == null)
+            {
+                return;
+            }
+
+            var serialized = new SerializedObject(manager);
+            SerializedProperty property = serialized.FindProperty("gameplayMusicClip");
+            if (property != null && property.objectReferenceValue == null)
+            {
+                property.objectReferenceValue = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                serialized.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(prefab);
+            }
+        }
+
+        private static bool HasExtraClip(SerializedProperty extras, SoundId id)
+        {
+            for (int i = 0; i < extras.arraySize; i++)
+            {
+                SerializedProperty entry = extras.GetArrayElementAtIndex(i);
+                if (entry.FindPropertyRelative("id").enumValueIndex == (int)id && entry.FindPropertyRelative("clip").objectReferenceValue != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // ---------------------------------------------------------------- effects

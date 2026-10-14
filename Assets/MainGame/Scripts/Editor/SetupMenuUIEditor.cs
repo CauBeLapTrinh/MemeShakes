@@ -41,12 +41,12 @@ namespace Catshakes.EditorTools
         private static readonly Color GreenBackdrop = new Color32(98, 224, 108, 255);
         private static readonly Color TapTextColor = new Color32(128, 88, 52, 255);
 
-        private static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
-        private static readonly Vector2 TopLeft = new Vector2(0f, 1f);
-        private static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
-        private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
-        private static readonly Vector2 TopRight = new Vector2(1f, 1f);
-        private static readonly Vector2 BottomRight = new Vector2(1f, 0f);
+        internal static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
+        internal static readonly Vector2 TopLeft = new Vector2(0f, 1f);
+        internal static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
+        internal static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
+        internal static readonly Vector2 TopRight = new Vector2(1f, 1f);
+        internal static readonly Vector2 BottomRight = new Vector2(1f, 0f);
 
         private sealed class Art
         {
@@ -450,6 +450,9 @@ namespace Catshakes.EditorTools
             UnityEventTools.AddPersistentListener(backButton.onClick, manager.OnBackClicked);
             UnityEventTools.AddPersistentListener(letsShakeButton.onClick, manager.OnLetsShakeClicked);
 
+            // ---- Shop and Speedrun leaderboard overlays
+            SetupShopLeaderboardEditor.Build(manager);
+
             // Scene is saved showing the Title screen only; MenuUIManager restores the right state at runtime.
             levelPanelRect.gameObject.SetActive(false);
             mainPanelRect.gameObject.SetActive(false);
@@ -566,7 +569,7 @@ namespace Catshakes.EditorTools
 
         // ---------------------------------------------------------------- widget builders
 
-        private static CanvasGroup NewScrollingBackground(string name, Transform parent, Texture2D texture)
+        internal static CanvasGroup NewScrollingBackground(string name, Transform parent, Texture2D texture)
         {
             RectTransform rect = NewRect(name, parent);
             Stretch(rect);
@@ -636,7 +639,7 @@ namespace Catshakes.EditorTools
             return slider;
         }
 
-        private static Button NewButton(string name, Transform parent, Sprite sprite, float scale, Vector2 anchoredPosition)
+        internal static Button NewButton(string name, Transform parent, Sprite sprite, float scale, Vector2 anchoredPosition)
         {
             Image image = NewImage(name, parent, sprite, scale);
             image.raycastTarget = true;
@@ -649,7 +652,7 @@ namespace Catshakes.EditorTools
             return button;
         }
 
-        private static Image NewImage(string name, Transform parent, Sprite sprite, float scale)
+        internal static Image NewImage(string name, Transform parent, Sprite sprite, float scale)
         {
             RectTransform rect = NewRect(name, parent);
             rect.sizeDelta = sprite.rect.size * scale;
@@ -670,7 +673,7 @@ namespace Catshakes.EditorTools
             return raw;
         }
 
-        private static TMP_Text NewText(string name, Transform parent, string text, float fontSize, Color color, TextAlignmentOptions alignment, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Vector2 size)
+        internal static TMP_Text NewText(string name, Transform parent, string text, float fontSize, Color color, TextAlignmentOptions alignment, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Vector2 size)
         {
             RectTransform rect = NewRect(name, parent);
             SetAnchored(rect, anchor, pivot, anchoredPosition, size);
@@ -684,14 +687,14 @@ namespace Catshakes.EditorTools
             return label;
         }
 
-        private static RectTransform NewRect(string name, Transform parent)
+        internal static RectTransform NewRect(string name, Transform parent)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             return (RectTransform)go.transform;
         }
 
-        private static void Stretch(RectTransform rect)
+        internal static void Stretch(RectTransform rect)
         {
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
@@ -700,7 +703,7 @@ namespace Catshakes.EditorTools
             rect.offsetMax = Vector2.zero;
         }
 
-        private static void SetAnchored(RectTransform rect, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Vector2 size)
+        internal static void SetAnchored(RectTransform rect, Vector2 anchor, Vector2 pivot, Vector2 anchoredPosition, Vector2 size)
         {
             rect.anchorMin = anchor;
             rect.anchorMax = anchor;
@@ -722,7 +725,7 @@ namespace Catshakes.EditorTools
             return property;
         }
 
-        private static void SetRef(Object target, string field, Object value)
+        internal static void SetRef(Object target, string field, Object value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = Find(serialized, field);
@@ -733,7 +736,7 @@ namespace Catshakes.EditorTools
             }
         }
 
-        private static void SetFloat(Object target, string field, float value)
+        internal static void SetFloat(Object target, string field, float value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = Find(serialized, field);
@@ -744,7 +747,7 @@ namespace Catshakes.EditorTools
             }
         }
 
-        private static void SetInt(Object target, string field, int value)
+        internal static void SetInt(Object target, string field, int value)
         {
             var serialized = new SerializedObject(target);
             SerializedProperty property = Find(serialized, field);

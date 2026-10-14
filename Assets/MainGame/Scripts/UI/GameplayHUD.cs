@@ -51,6 +51,7 @@ namespace Catshakes
         [SerializeField] private string timeAndBestFormat = "Time {0}  -  Best {1}";
 
         private string speedrunSummary;
+        private bool speedrunWasNewBest;
         private bool showFinalTimer;
         private int lastDisplayedCentiseconds = -1;
 
@@ -233,6 +234,7 @@ namespace Catshakes
             GameSceneManager manager = GameSceneManager.Instance;
             string time = GameSceneManager.FormatTime(totalSeconds);
 
+            speedrunWasNewBest = isNewBest;
             speedrunSummary = isNewBest
                 ? string.Format(newBestFormat, time)
                 : string.Format(timeAndBestFormat, time, GameSceneManager.FormatTime(manager != null ? manager.BestSpeedrunSeconds : totalSeconds));
@@ -252,6 +254,16 @@ namespace Catshakes
             {
                 ShowWinPanel(speedrunWinTitle, speedrunSummary, false);
                 speedrunSummary = null;
+                if (speedrunWasNewBest)
+                {
+                    speedrunWasNewBest = false;
+                    SoundManager.Play(SoundId.RankUp);
+                    if (winPanel != null)
+                    {
+                        UIFx.Burst((RectTransform)winPanel.transform, UIFx.GoldColors, 28, 700f);
+                    }
+                }
+
                 return;
             }
 
@@ -301,10 +313,10 @@ namespace Catshakes
             {
                 button.onClick.AddListener(action);
 
-                // Buttons with UIButtonPress already play the click sound.
+                // UIButtonPress gives the squish, the mouse hover and the click sound.
                 if (button.GetComponent<UIButtonPress>() == null)
                 {
-                    button.onClick.AddListener(() => SoundManager.Play(SoundId.Button));
+                    button.gameObject.AddComponent<UIButtonPress>();
                 }
             }
         }
@@ -320,6 +332,7 @@ namespace Catshakes
 
         private void HandleUndoClicked()
         {
+            SoundManager.Play(SoundId.Undo);
             gridManager.Undo();
         }
 
@@ -333,6 +346,7 @@ namespace Catshakes
             }
 
             HideWinPanel();
+            SoundManager.Play(SoundId.Reset);
             gridManager.ResetLevel();
         }
 

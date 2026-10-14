@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Catshakes
@@ -18,7 +19,7 @@ namespace Catshakes
     /// The root is the grid cell; <see cref="face"/> is a centered child that gets the sprite's own size,
     /// so the larger "selected" sprite grows past the cell like in the design.
     /// </summary>
-    public sealed class LevelButtonView : MonoBehaviour
+    public sealed class LevelButtonView : MonoBehaviour, IPointerClickHandler
     {
         [SerializeField] private Button button;
         [SerializeField] private Image face;
@@ -84,6 +85,16 @@ namespace Catshakes
                 {
                     label.rectTransform.anchoredPosition = labelRestPosition + (locked ? new Vector2(0f, lockedLabelOffsetY) : Vector2.zero);
                 }
+            }
+        }
+
+        /// <summary>A locked (non-interactable) button gets no onClick; it still reacts so the tap is not lost.</summary>
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (button != null && !button.interactable)
+            {
+                SoundManager.Play(SoundId.Locked);
+                UIFx.Punch(face != null ? face.transform : transform, -0.12f, 0.3f);
             }
         }
 

@@ -15,7 +15,8 @@ namespace Catshakes
     }
 
     /// <summary>
-    /// State machine for the menu scene: Title -> MainMenu -> LevelSelect, plus the Settings popup on top.
+    /// State machine for the menu scene: Title -> MainMenu -> LevelSelect, plus the Settings popup, the shop and the
+    /// Speedrun leaderboard on top.
     /// Every panel is a CanvasGroup that is cross-faded; the green and yellow backgrounds and the shared
     /// logo/mascot group fade with it. Button handlers (public On... methods) are wired in the inspector or
     /// by the setup tool. Level progress and scene loading are delegated to <see cref="GameSceneManager"/>.
@@ -44,6 +45,12 @@ namespace Catshakes
 
         [Header("Level select")]
         [SerializeField] private LevelSelectGrid levelGrid;
+
+        [Header("Overlays")]
+        [Tooltip("Opened by the shop button of the main menu.")]
+        [SerializeField] private ShopOverlay shopOverlay;
+        [Tooltip("Shown before a Speedrun starts; without it Speed Run starts at once.")]
+        [SerializeField] private LeaderboardOverlay leaderboardOverlay;
 
         [Header("Timing")]
         [SerializeField, Min(0f)] private float fadeDuration = 0.25f;
@@ -153,14 +160,31 @@ namespace Catshakes
                 }
 
                 shakeRoutine = StartCoroutine(ShakeRoutine((RectTransform)speedRunImage.transform));
+                SoundManager.Play(SoundId.Locked);
                 return;
             }
 
             Click();
+            if (leaderboardOverlay != null)
+            {
+                leaderboardOverlay.Open();
+                return;
+            }
+
             GameSceneManager manager = GameSceneManager.Instance;
             if (manager != null)
             {
                 manager.StartSpeedrun();
+            }
+        }
+
+        /// <summary>Main menu: the shop button (top right).</summary>
+        public void OnShopClicked()
+        {
+            if (CanNavigate() && State == MenuState.MainMenu && shopOverlay != null)
+            {
+                Click();
+                shopOverlay.Open();
             }
         }
 
@@ -250,14 +274,16 @@ namespace Catshakes
 
         private bool CanNavigate()
         {
-            return !isTransitioning && !IsSettingsOpen && !isSettingsAnimating && !PersistentPopups.IsAnyOpen;
+            return !isTransitioning && !IsSettingsOpen && !isSettingsAnimating && !PersistentPopups.IsAnyOpen && !IsOverlayBusy;
         }
+
+        private bool IsOverlayBusy => (shopOverlay != null && shopOverlay.IsBusy) || (leaderboardOverlay != null && leaderboardOverlay.IsBusy);
 
         private void HandleBackKey()
         {
-            if (PersistentPopups.IsAnyOpen)
+            if (PersistentPopups.IsAnyOpen || IsOverlayBusy)
             {
-                // The shared popup closes itself on Escape.
+                // The shared popup and the overlays close themselves on Escape.
                 return;
             }
 

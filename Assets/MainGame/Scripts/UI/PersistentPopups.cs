@@ -127,6 +127,7 @@ namespace Catshakes
                 return;
             }
 
+            SoundManager.Play(SoundId.PopupOpen);
             StartCoroutine(SettingsRoutine(true));
         }
 
@@ -137,6 +138,7 @@ namespace Catshakes
                 return;
             }
 
+            SoundManager.Play(SoundId.PopupClose);
             StartCoroutine(SettingsRoutine(false));
         }
 
