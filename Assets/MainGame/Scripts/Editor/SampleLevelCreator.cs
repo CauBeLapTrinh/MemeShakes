@@ -12,7 +12,7 @@ namespace Catshakes.EditorTools
     /// </summary>
     public static class SampleLevelCreator
     {
-        private const string FolderPath = "Assets/Levels";
+        private const string FolderPath = "Assets/MainGame/Levels";
 
         private struct SampleLevel
         {
@@ -79,7 +79,7 @@ namespace Catshakes.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(FolderPath))
             {
-                AssetDatabase.CreateFolder("Assets", "Levels");
+                AssetDatabase.CreateFolder("Assets/MainGame", "Levels");
             }
 
             Object firstCreated = null;

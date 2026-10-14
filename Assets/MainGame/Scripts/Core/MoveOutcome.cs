@@ -5,6 +5,7 @@ namespace Catshakes
     {
         Extended,
         ExtendedAndPushedBarrel,
+        ExtendedAndPushedCat,
         Retracted,
         BlockedOutOfBounds,
         BlockedByWall,
@@ -22,6 +23,7 @@ namespace Catshakes
         {
             return outcome == MoveOutcome.Extended
                    || outcome == MoveOutcome.ExtendedAndPushedBarrel
+                   || outcome == MoveOutcome.ExtendedAndPushedCat
                    || outcome == MoveOutcome.Retracted;
         }
     }

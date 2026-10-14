@@ -42,7 +42,7 @@ namespace Catshakes.EditorTools
             "Door", "Cat A start (P)", "Cat B start (Q)", "Eraser"
         };
 
-        private const string LevelFolder = "Assets/Levels";
+        private const string LevelFolder = "Assets/MainGame/Levels";
         private const string NewLevelTemplate = ".......\n.......\n.......\n.......\nP.....Q";
         private const int MaxGridSize = 40;
 
@@ -885,7 +885,7 @@ namespace Catshakes.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(LevelFolder))
             {
-                AssetDatabase.CreateFolder("Assets", "Levels");
+                AssetDatabase.CreateFolder("Assets/MainGame", "Levels");
             }
 
             int number = 1;

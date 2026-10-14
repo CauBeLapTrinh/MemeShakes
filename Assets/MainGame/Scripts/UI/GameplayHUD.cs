@@ -71,7 +71,7 @@ namespace Catshakes
             {
                 gridManager.StateChanged += Refresh;
                 gridManager.LevelLoaded += HandleLevelLoaded;
-                gridManager.Won += HandleGridWon;
+                gridManager.WinPresentationFinished += HandleGridWon;
                 gridManager.ActiveCatChanged += HandleActiveCatChanged;
             }
 
@@ -89,7 +89,7 @@ namespace Catshakes
             {
                 gridManager.StateChanged -= Refresh;
                 gridManager.LevelLoaded -= HandleLevelLoaded;
-                gridManager.Won -= HandleGridWon;
+                gridManager.WinPresentationFinished -= HandleGridWon;
                 gridManager.ActiveCatChanged -= HandleActiveCatChanged;
             }
 
@@ -215,7 +215,8 @@ namespace Catshakes
             RefreshActiveCatText();
         }
 
-        // Without a GameSceneManager (scene played directly in the Editor) the grid event drives the panel.
+        // Without a GameSceneManager (scene played directly in the Editor) the grid event drives the panel,
+        // once the victory effects are over.
         private void HandleGridWon()
         {
             if (GameSceneManager.Instance == null)

@@ -230,6 +230,15 @@ MonoBehaviour:
   - {fileID: 11400000, guid: baa13fd6d12245845b3f260e9539f2f7, type: 2}
   - {fileID: 11400000, guid: 3f5cfbed1c39bd94298cf18f534dc828, type: 2}
   - {fileID: 11400000, guid: 1e1ba0bbf6b339b45a390d4bf403bddf, type: 2}
+  - {fileID: 11400000, guid: e59d5a1ccbdeb084f8bdb51cb96b88c1, type: 2}
+  - {fileID: 11400000, guid: 1aa45ea4a5b95254ca54ce086591c50c, type: 2}
+  - {fileID: 11400000, guid: cf8aef5acfe76aa4f8f0bb2915761c09, type: 2}
+  - {fileID: 11400000, guid: 26723ba183ba5814d81c8e32668f2f75, type: 2}
+  - {fileID: 11400000, guid: ba82ba66e268b894c9cee7ed61c34f51, type: 2}
+  - {fileID: 11400000, guid: 34afabb2b53110943aab3b09b8ef2678, type: 2}
+  - {fileID: 11400000, guid: 1a9ff089037e4834d8114227e5d6c0b4, type: 2}
+  - {fileID: 11400000, guid: d21cc3ce1db93504394b59882bff784f, type: 2}
+  - {fileID: 11400000, guid: 0d6ff465f1c0c8a4fba0f123ee3b6cd0, type: 2}
   fadeGroup: {fileID: 970321094}
   fadeDuration: 0.25
 --- !u!4 &53140112

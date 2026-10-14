@@ -7,8 +7,9 @@ using UnityEngine;
 namespace Catshakes
 {
     /// <summary>
-    /// One cat and its snake-like arm. The arm is a list of grid cells (<see cref="ArmPath"/>) that starts next to
-    /// the cat's root cell. The last cell is the hand. Extending appends one cell, retracting removes the last one.
+    /// One cat and its snake-like arm. The arm is a list of grid cells (<see cref="ArmPath"/>). The first cell is the
+    /// hand's start cell, one cell in front of the cat's face (never on the body); the last cell is the hand.
+    /// Extending appends one cell, retracting removes the last one (the start cell is never removed).
     /// This class owns the arm data and its visuals; whether a move is legal is decided by <see cref="GridManager"/>.
     /// </summary>
     public sealed class CatArmController : MonoBehaviour
@@ -40,12 +41,24 @@ namespace Catshakes
 
         [Header("Animation")]
         [SerializeField, Min(0f)] private float moveDuration = 0.12f;
+        [Tooltip("Pause after a cut, before the stump starts to retract.")]
+        [SerializeField, Min(0f)] private float cutPauseDuration = 0.15f;
+        [Tooltip("Time the stump needs to retract by one cell after a cut.")]
+        [SerializeField, Min(0f)] private float cutRetractStepDuration = 0.08f;
+        [Tooltip("Time the new hand needs to grow (scale up) after the stump has retracted.")]
+        [SerializeField, Min(0f)] private float cutRegrowDuration = 0.3f;
 
         private readonly List<Vector2Int> armPath = new List<Vector2Int>();
         private GridSpace coords;
         private Vector2Int rootPosition;
         private int maxSteps = 1;
         private Coroutine animationRoutine;
+        private Coroutine cutRoutine;
+        private Coroutine pulseRoutine;
+        private Coroutine handshakeRoutine;
+        private Vector3 handBaseScale = Vector3.one;
+        private Vector3 bodyBaseScale = Vector3.one;
+        private bool scalesCaptured;
 
         /// <summary>Raised whenever the arm length (and therefore the remaining steps) changes.</summary>
         public event Action<CatArmController> StepsChanged;
@@ -54,24 +67,173 @@ namespace Catshakes
         public Vector2Int RootPosition => rootPosition;
         public int MaxSteps => maxSteps;
         public IReadOnlyList<Vector2Int> ArmPath => armPath;
-        public int StepsRemaining => maxSteps - armPath.Count;
+        /// <summary>Number of cells the hand has moved beyond its start cell.</summary>
+        public int ExtendedLength => Mathf.Max(0, armPath.Count - 1);
+        public int StepsRemaining => maxSteps - ExtendedLength;
         public bool CanExtend => StepsRemaining > 0;
 
-        /// <summary>True once at least one arm segment exists, i.e. the hand has left the cat's body.</summary>
-        public bool HasExtendedArm => armPath.Count > 0;
+        /// <summary>True once the hand has moved beyond its start cell.</summary>
+        public bool HasExtendedArm => armPath.Count > 1;
         public bool IsSelected { get; private set; }
-        public bool IsAnimating => animationRoutine != null;
+        public bool IsAnimating => animationRoutine != null || cutRoutine != null;
 
-        /// <summary>The tip of the arm; equals the root cell while the arm is not extended.</summary>
+        /// <summary>True from the moment the arm is cut until the new hand has grown back. Input must wait.</summary>
+        public bool IsPlayingCut => cutRoutine != null;
+
+        /// <summary>The tip of the arm; equals the hand start cell (in front of the cat) while the arm is not extended.</summary>
         public Vector2Int HandPosition => armPath.Count > 0 ? armPath[armPath.Count - 1] : rootPosition;
 
         /// <summary>The cell directly behind the hand (the one the hand would return to when retracting).</summary>
         public Vector2Int CellBehindHand => armPath.Count > 1 ? armPath[armPath.Count - 2] : rootPosition;
 
+        /// <summary>The sprite of the hand, used for the severed hand left behind by a closing door.</summary>
+        public Sprite HandSprite
+        {
+            get
+            {
+                if (handVisual == null)
+                {
+                    return null;
+                }
+
+                SpriteRenderer handRenderer = handVisual.GetComponentInChildren<SpriteRenderer>();
+                return handRenderer != null ? handRenderer.sprite : null;
+            }
+        }
+
+        /// <summary>World scale of the hand sprite, so a severed hand has the same size.</summary>
+        public Vector3 HandScale
+        {
+            get
+            {
+                if (handVisual == null)
+                {
+                    return Vector3.one;
+                }
+
+                SpriteRenderer handRenderer = handVisual.GetComponentInChildren<SpriteRenderer>();
+                return handRenderer != null ? handRenderer.transform.lossyScale : Vector3.one;
+            }
+        }
+
+        /// <summary>Sorting order of the hand sprite, so the handshake sprite can be drawn right above it.</summary>
+        public int HandSortingOrder
+        {
+            get
+            {
+                if (handVisual == null)
+                {
+                    return 0;
+                }
+
+                SpriteRenderer handRenderer = handVisual.GetComponentInChildren<SpriteRenderer>();
+                return handRenderer != null ? handRenderer.sortingOrder : 0;
+            }
+        }
+
+        /// <summary>Shows or hides the hand sprite (hidden while the handshake sprite replaces both hands).</summary>
+        public void SetHandVisible(bool visible)
+        {
+            if (handVisual != null)
+            {
+                handVisual.gameObject.SetActive(visible);
+            }
+        }
+
+        /// <summary>Z rotation in degrees of the hand sprite for the current arm.</summary>
+        public float HandAngle => FacingAngle();
+
+        /// <summary>True when the hand tip or the arm's start cell is on <paramref name="cell"/> (these hold a door open).</summary>
+        public bool HoldsDoorAt(Vector2Int cell)
+        {
+            return armPath.Count > 0 && (HandPosition == cell || armPath[0] == cell);
+        }
+
+        /// <summary>
+        /// Finds the arm index of <paramref name="cell"/> when the arm passes through it, i.e. the cell is neither the start
+        /// cell nor the tip. Only such a cell can be cut by a closing door.
+        /// </summary>
+        public bool TryFindPassThroughIndex(Vector2Int cell, out int index)
+        {
+            index = armPath.IndexOf(cell);
+            return index >= 1 && index < armPath.Count - 1;
+        }
+
+        /// <summary>
+        /// Cuts the arm at the door on arm index <paramref name="index"/>. Logically the arm is back at its start cell at once
+        /// (all steps refunded); visually the stump retracts cell by cell and a new hand grows at the start cell.
+        /// <see cref="IsPlayingCut"/> stays true until that is finished.
+        /// </summary>
+        public void CutAt(int index)
+        {
+            if (index < 1 || index >= armPath.Count)
+            {
+                return;
+            }
+
+            StopAnimationRoutine();
+
+            // The cells the stump still covers: from the start cell up to the cell in front of the door.
+            var stumpPath = new List<Vector2Int>(index);
+            for (int i = 0; i < index; i++)
+            {
+                stumpPath.Add(armPath[i]);
+            }
+
+            Vector2Int startCell = armPath[0];
+            armPath.Clear();
+            armPath.Add(startCell);
+            UpdateLabel();
+            StepsChanged?.Invoke(this);
+
+            if (coords == null || !isActiveAndEnabled)
+            {
+                SnapView();
+                return;
+            }
+
+            cutRoutine = StartCoroutine(CutSequence(stumpPath));
+        }
+
+        /// <summary>
+        /// Moves the hand sprite back along its own direction so that, when both hands stand on the same cell,
+        /// they meet in the middle of it (palm to palm) instead of lying on top of each other.
+        /// </summary>
+        public void PlayHandshakePose(float duration)
+        {
+            if (!isActiveAndEnabled || handVisual == null || coords == null)
+            {
+                return;
+            }
+
+            if (handshakeRoutine != null)
+            {
+                StopCoroutine(handshakeRoutine);
+            }
+
+            handshakeRoutine = StartCoroutine(HandshakeRoutine(duration));
+        }
+
+        /// <summary>Pulses the hand and body for <paramref name="duration"/> seconds (victory feedback).</summary>
+        public void PlayWinPulse(float duration)
+        {
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                return;
+            }
+
+            if (pulseRoutine != null)
+            {
+                StopCoroutine(pulseRoutine);
+            }
+
+            pulseRoutine = StartCoroutine(PulseRoutine(duration));
+        }
+
         /// <summary>True when <paramref name="cell"/> is the cell the hand would retract into.</summary>
         public bool IsRetractTarget(Vector2Int cell)
         {
-            return armPath.Count > 0 && cell == CellBehindHand;
+            return armPath.Count > 1 && cell == CellBehindHand;
         }
 
         /// <summary>True for the root cell or any arm cell.</summary>
@@ -86,13 +248,15 @@ namespace Catshakes
             return armPath.Contains(cell);
         }
 
-        public void Initialize(GridSpace gridSpace, Vector2Int root, int steps)
+        public void Initialize(GridSpace gridSpace, Vector2Int root, Vector2Int handStart, Direction facing, int steps)
         {
             StopAnimationRoutine();
             coords = gridSpace;
             rootPosition = root;
+            restFacing = facing;
             maxSteps = Mathf.Max(1, steps);
             armPath.Clear();
+            armPath.Add(handStart);
 
             if (armLine != null)
             {
@@ -127,10 +291,10 @@ namespace Catshakes
             return true;
         }
 
-        /// <summary>Removes the last arm cell. Fails if the arm is not extended.</summary>
+        /// <summary>Removes the last arm cell. Fails if the hand is on its start cell.</summary>
         public bool RetractLast()
         {
-            if (armPath.Count == 0)
+            if (armPath.Count <= 1)
             {
                 return false;
             }
@@ -142,6 +306,45 @@ namespace Catshakes
             PlayView(ViewChange.Retracted, previousHand);
             StepsChanged?.Invoke(this);
             return true;
+        }
+
+        /// <summary>
+        /// Moves the whole cat (body and arm) one cell, because the other cat pushed it. The caller has checked
+        /// that every target cell is free. The visuals slide to the new cells.
+        /// </summary>
+        public void ShiftBy(Vector2Int delta)
+        {
+            if (delta == Vector2Int.zero)
+            {
+                return;
+            }
+
+            CompleteAnimationImmediately();
+            rootPosition += delta;
+            for (int i = 0; i < armPath.Count; i++)
+            {
+                armPath[i] += delta;
+            }
+
+            if (coords == null)
+            {
+                return;
+            }
+
+            if (!isActiveAndEnabled || moveDuration <= 0f)
+            {
+                SnapView();
+                return;
+            }
+
+            animationRoutine = StartCoroutine(SlideRoutine(new Vector3(-delta.x, -delta.y, 0f) * coords.CellSize));
+        }
+
+        /// <summary>Replaces the body cell and the whole arm (used by Undo/Reset) and snaps the visuals.</summary>
+        public void RestoreState(Vector2Int root, IReadOnlyList<Vector2Int> path)
+        {
+            rootPosition = root;
+            RestorePath(path);
         }
 
         /// <summary>Replaces the whole arm (used by Undo/Reset) and snaps the visuals without animation.</summary>
@@ -180,6 +383,11 @@ namespace Catshakes
             SnapView();
         }
 
+        private void Awake()
+        {
+            EnsureBaseScales();
+        }
+
         private void StopAnimationRoutine()
         {
             if (animationRoutine != null)
@@ -187,6 +395,204 @@ namespace Catshakes
                 StopCoroutine(animationRoutine);
                 animationRoutine = null;
             }
+
+            if (cutRoutine != null)
+            {
+                StopCoroutine(cutRoutine);
+                cutRoutine = null;
+            }
+
+            if (pulseRoutine != null)
+            {
+                StopCoroutine(pulseRoutine);
+                pulseRoutine = null;
+            }
+
+            if (handshakeRoutine != null)
+            {
+                StopCoroutine(handshakeRoutine);
+                handshakeRoutine = null;
+            }
+        }
+
+        private void EnsureBaseScales()
+        {
+            if (scalesCaptured)
+            {
+                return;
+            }
+
+            scalesCaptured = true;
+            if (handVisual != null)
+            {
+                handBaseScale = handVisual.localScale;
+            }
+
+            if (bodyVisual != null)
+            {
+                bodyBaseScale = bodyVisual.localScale;
+            }
+        }
+
+        private void RestoreScales()
+        {
+            EnsureBaseScales();
+            if (handVisual != null)
+            {
+                handVisual.localScale = handBaseScale;
+            }
+
+            if (bodyVisual != null)
+            {
+                bodyVisual.localScale = bodyBaseScale;
+            }
+        }
+
+        private void SetHandScale(float factor)
+        {
+            EnsureBaseScales();
+            if (handVisual != null)
+            {
+                handVisual.localScale = handBaseScale * factor;
+            }
+        }
+
+        /// <summary>
+        /// After a cut: the old hand stays behind, so the stump (root, start cell ... cell in front of the door)
+        /// retracts cell by cell to the start cell, then a new hand grows there.
+        /// </summary>
+        private IEnumerator CutSequence(List<Vector2Int> stumpPath)
+        {
+            var points = new List<Vector3>(stumpPath.Count + 1) { coords.GridToWorld(rootPosition) };
+            for (int i = 0; i < stumpPath.Count; i++)
+            {
+                points.Add(coords.GridToWorld(stumpPath[i]));
+            }
+
+            // The old hand is gone from the arm; the tip of the stump stays where the cut happened for a moment.
+            SetHandScale(0f);
+            int tipPoint = points.Count - 1;
+            SetCutLine(points, tipPoint, points[tipPoint]);
+
+            float pause = 0f;
+            while (pause < cutPauseDuration)
+            {
+                pause += Time.deltaTime;
+                yield return null;
+            }
+
+            for (int last = tipPoint; last >= 2; last--)
+            {
+                Vector3 from = points[last];
+                Vector3 to = points[last - 1];
+                float elapsed = 0f;
+
+                while (elapsed < cutRetractStepDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = Mathf.Clamp01(elapsed / cutRetractStepDuration);
+                    SetCutLine(points, last, Vector3.Lerp(from, to, t));
+                    yield return null;
+                }
+            }
+
+            SetCutLine(points, 1, points[1]);
+
+            // A new hand grows on the start cell.
+            if (handVisual != null)
+            {
+                handVisual.position = points[1];
+                handVisual.rotation = Quaternion.Euler(0f, 0f, FacingAngle());
+            }
+
+            float grow = 0f;
+            while (grow < cutRegrowDuration)
+            {
+                grow += Time.deltaTime;
+                float t = Mathf.Clamp01(grow / cutRegrowDuration);
+                float overshoot = 1.70158f;
+                float u = t - 1f;
+                SetHandScale(1f + (overshoot + 1f) * u * u * u + overshoot * u * u);
+                yield return null;
+            }
+
+            cutRoutine = null;
+            SnapView();
+        }
+
+        /// <summary>Draws the first <paramref name="fixedPointCount"/> points plus a moving tip.</summary>
+        private void SetCutLine(List<Vector3> points, int fixedPointCount, Vector3 tip)
+        {
+            if (armLine == null)
+            {
+                return;
+            }
+
+            armLine.positionCount = fixedPointCount + 1;
+            for (int i = 0; i < fixedPointCount; i++)
+            {
+                armLine.SetPosition(i, points[i]);
+            }
+
+            armLine.SetPosition(fixedPointCount, tip);
+        }
+
+        private IEnumerator HandshakeRoutine(float duration)
+        {
+            Vector3 center = coords.GridToWorld(HandPosition);
+            Vector3 forward = Quaternion.Euler(0f, 0f, FacingAngle()) * Vector3.right;
+
+            // Half the length of the hand sprite, so the two fingertips meet at the middle of the cell.
+            float halfLength = coords.CellSize * 0.25f;
+            SpriteRenderer handRenderer = handVisual.GetComponentInChildren<SpriteRenderer>();
+            if (handRenderer != null && handRenderer.sprite != null)
+            {
+                halfLength = handRenderer.sprite.bounds.extents.x * handRenderer.transform.lossyScale.x;
+            }
+
+            float offset = Mathf.Min(halfLength * 0.85f, coords.CellSize * 0.45f);
+            Vector3 from = handVisual.position;
+            Vector3 to = center - forward * offset;
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                handVisual.position = Vector3.Lerp(from, to, t);
+                yield return null;
+            }
+
+            handVisual.position = to;
+            handshakeRoutine = null;
+        }
+
+        private IEnumerator PulseRoutine(float duration)
+        {
+            EnsureBaseScales();
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float factor = 1f + 0.35f * Mathf.Abs(Mathf.Sin(t * Mathf.PI * 3f)) * (1f - t);
+
+                if (handVisual != null)
+                {
+                    handVisual.localScale = handBaseScale * factor;
+                }
+
+                if (bodyVisual != null)
+                {
+                    bodyVisual.localScale = bodyBaseScale * factor;
+                }
+
+                yield return null;
+            }
+
+            RestoreScales();
+            pulseRoutine = null;
         }
 
         private void PlayView(ViewChange change, Vector2Int previousHandCell)
@@ -244,12 +650,50 @@ namespace Catshakes
             SnapView();
         }
 
+        private IEnumerator SlideRoutine(Vector3 startOffset)
+        {
+            float elapsed = 0f;
+            while (elapsed < moveDuration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / moveDuration));
+                ApplyViewOffset(Vector3.Lerp(startOffset, Vector3.zero, t));
+                yield return null;
+            }
+
+            animationRoutine = null;
+            SnapView();
+        }
+
+        /// <summary>Draws body, arm and hand on their logical cells, shifted by <paramref name="offset"/>.</summary>
+        private void ApplyViewOffset(Vector3 offset)
+        {
+            if (bodyVisual != null)
+            {
+                bodyVisual.position = coords.GridToWorld(rootPosition) + offset;
+            }
+
+            if (armLine != null)
+            {
+                int pointCount = armPath.Count + 1;
+                armLine.positionCount = pointCount;
+                for (int i = 0; i < pointCount; i++)
+                {
+                    armLine.SetPosition(i, PointWorld(i) + offset);
+                }
+            }
+
+            PlaceHand(coords.GridToWorld(HandPosition) + offset);
+        }
+
         private void SnapView()
         {
             if (coords == null)
             {
                 return;
             }
+
+            RestoreScales();
 
             if (bodyVisual != null)
             {
@@ -289,7 +733,7 @@ namespace Catshakes
 
         private float FacingAngle()
         {
-            if (armPath.Count > 0 && DirectionExtensions.TryFromVector(HandPosition - CellBehindHand, out Direction facing))
+            if (armPath.Count > 1 && DirectionExtensions.TryFromVector(HandPosition - CellBehindHand, out Direction facing))
             {
                 return facing.ToAngleDegrees();
             }

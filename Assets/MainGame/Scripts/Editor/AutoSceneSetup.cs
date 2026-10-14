@@ -22,9 +22,9 @@ namespace Catshakes.EditorTools
     public static class AutoSceneSetup
     {
         private const string SpriteFolder = "Assets/MainGame/Sprites/Assetgame/";
-        private const string PrefabFolder = "Assets/Prefabs";
-        private const string MaterialFolder = "Assets/Prefabs/Materials";
-        private const string LevelFolder = "Assets/Levels";
+        private const string PrefabFolder = "Assets/MainGame/Prefabs";
+        private const string MaterialFolder = "Assets/MainGame/Prefabs/Materials";
+        private const string LevelFolder = "Assets/MainGame/Levels";
         private const string SceneFolder = "Assets/MainGame/Scenes";
         private const string ScenePath = SceneFolder + "/GameplayScene.unity";
         private const string LevelPath = LevelFolder + "/Level0_Tutorial.asset";

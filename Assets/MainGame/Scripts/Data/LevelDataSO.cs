@@ -46,11 +46,17 @@ namespace Catshakes
         [SerializeField, Min(1)] private int catAMaxSteps = 6;
         [SerializeField, Min(1)] private int catBMaxSteps = 6;
 
+        [Tooltip("Direction cat A faces at the start. Its hand starts on the neighbouring cell in this direction.")]
+        [SerializeField] private Direction catAFacing = Direction.Right;
+
+        [Tooltip("Direction cat B faces at the start. Its hand starts on the neighbouring cell in this direction.")]
+        [SerializeField] private Direction catBFacing = Direction.Left;
+
         [Header("Obstacles (walls, barrels, switches, doors)")]
         [SerializeField] private List<ObstacleData> obstacles = new List<ObstacleData>();
 
         [Header("Quick authoring (right-click this asset > Import From ASCII Layout)")]
-        [Tooltip("Legend: # wall | . empty | P cat A | Q cat B | O barrel | 1-9 Switch_1 (momentary, linkId = digit) | a-i Switch_2 (toggle, a=1..i=9) | A-I door (A=1..I=9). The first text line is the TOP row.")]
+        [Tooltip("Legend: # wall | . empty | P cat A | Q cat B | O barrel | 1-9 Switch_1 (momentary, linkId = digit) | a-i Switch_2 (toggle, a=1..i=9) | A-I door (A=1..I=9). The first text line is the TOP row. Optional last line '@A=R B=L' sets the facing (U/D/L/R) of each cat.")]
         [SerializeField, TextArea(6, 20)] private string asciiLayout = string.Empty;
 
         public string DisplayName => displayName;
@@ -60,11 +66,24 @@ namespace Catshakes
         public Vector2Int CatBStart => catBStart;
         public int CatAMaxSteps => catAMaxSteps;
         public int CatBMaxSteps => catBMaxSteps;
+        public Direction CatAFacing => catAFacing;
+        public Direction CatBFacing => catBFacing;
         public IReadOnlyList<ObstacleData> Obstacles => obstacles;
 
         public Vector2Int GetCatStart(CatId id)
         {
             return id == CatId.CatA ? catAStart : catBStart;
+        }
+
+        public Direction GetFacing(CatId id)
+        {
+            return id == CatId.CatA ? catAFacing : catBFacing;
+        }
+
+        /// <summary>The cell the cat's hand starts on: the neighbour of its start cell in the facing direction.</summary>
+        public Vector2Int GetHandStart(CatId id)
+        {
+            return GetCatStart(id) + GetFacing(id).ToVector();
         }
 
         public int GetMaxSteps(CatId id)
@@ -147,6 +166,13 @@ namespace Catshakes
                 }
             }
 
+            CheckHandStart(CatId.CatA, warnings);
+            CheckHandStart(CatId.CatB, warnings);
+            if (GetHandStart(CatId.CatA) == GetHandStart(CatId.CatB))
+            {
+                warnings.AppendLine("Both hands start on the same cell.");
+            }
+
             foreach (int link in doorLinks)
             {
                 if (!switchLinks.Contains(link))
@@ -165,6 +191,33 @@ namespace Catshakes
 
             report = errors.ToString() + warnings.ToString();
             return errors.Length == 0;
+        }
+
+        private void CheckHandStart(CatId id, StringBuilder warnings)
+        {
+            string cat = id == CatId.CatA ? "Cat A" : "Cat B";
+            Vector2Int hand = GetHandStart(id);
+            if (!IsInside(hand))
+            {
+                warnings.AppendLine(cat + " faces " + GetFacing(id) + " and its hand starts outside the grid at " + hand + ".");
+                return;
+            }
+
+            if (hand == GetCatStart(id.Other()))
+            {
+                warnings.AppendLine(cat + "'s hand starts on the other cat at " + hand + ".");
+                return;
+            }
+
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                ObstacleData data = obstacles[i];
+                if (data.position == hand && (data.tileType == TileType.Wall || data.tileType == TileType.Barrel))
+                {
+                    warnings.AppendLine(cat + "'s hand starts on a " + data.tileType + " at " + hand + ".");
+                    return;
+                }
+            }
         }
 
         private void OnValidate()
@@ -233,9 +286,27 @@ namespace Catshakes
                 return false;
             }
 
-            string[] rawLines = asciiLayout.Replace("\r", string.Empty).Split('\n');
+            // Lines starting with '@' hold the cat facings (e.g. "@A=R B=L"); every other line is a grid row.
+            var rawLines = new List<string>();
+            Direction facingA = catAFacing;
+            Direction facingB = catBFacing;
+            foreach (string rawLine in asciiLayout.Replace("\r", string.Empty).Split('\n'))
+            {
+                string trimmed = rawLine.Trim();
+                if (!trimmed.StartsWith("@", StringComparison.Ordinal))
+                {
+                    rawLines.Add(rawLine);
+                    continue;
+                }
+
+                if (!TryParseFacingLine(trimmed.Substring(1), ref facingA, ref facingB, out error))
+                {
+                    return false;
+                }
+            }
+
             int first = 0;
-            int last = rawLines.Length - 1;
+            int last = rawLines.Count - 1;
             while (first <= last && string.IsNullOrWhiteSpace(rawLines[first])) first++;
             while (last >= first && string.IsNullOrWhiteSpace(rawLines[last])) last--;
 
@@ -330,8 +401,55 @@ namespace Catshakes
             height = Mathf.Max(2, parsedHeight);
             catAStart = startA;
             catBStart = startB;
+            catAFacing = facingA;
+            catBFacing = facingB;
             obstacles = parsedObstacles;
             return true;
+        }
+
+        /// <summary>Parses the body of a facing line, e.g. "A=R B=L". Cats that are not mentioned keep their facing.</summary>
+        private static bool TryParseFacingLine(string body, ref Direction facingA, ref Direction facingB, out string error)
+        {
+            error = string.Empty;
+            string[] parts = body.Split(new[] { ' ', '\t', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string part = parts[i].ToUpperInvariant();
+                Direction direction;
+                if (part.Length != 3 || part[1] != '=' || !TryParseFacingLetter(part[2], out direction))
+                {
+                    error = "Bad facing entry '" + parts[i] + "'. Use A=U/D/L/R and B=U/D/L/R, e.g. '@A=R B=L'.";
+                    return false;
+                }
+
+                if (part[0] == 'A')
+                {
+                    facingA = direction;
+                }
+                else if (part[0] == 'B')
+                {
+                    facingB = direction;
+                }
+                else
+                {
+                    error = "Bad facing entry '" + parts[i] + "'. Only cats A and B exist.";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TryParseFacingLetter(char letter, out Direction direction)
+        {
+            switch (letter)
+            {
+                case 'U': direction = Direction.Up; return true;
+                case 'D': direction = Direction.Down; return true;
+                case 'L': direction = Direction.Left; return true;
+                case 'R': direction = Direction.Right; return true;
+                default: direction = Direction.Right; return false;
+            }
         }
     }
 }

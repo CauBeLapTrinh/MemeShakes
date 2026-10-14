@@ -14,9 +14,14 @@ namespace Catshakes
     ///  - An arm cannot enter walls, closed doors, or any cell occupied by a cat root or arm segment,
     ///    except the cell of the other cat's extended hand, which is the winning handshake.
     ///  - A barrel in the target cell is pushed one cell further if that cell is free.
+    ///  - The other cat's body is pushed one cell too (together with its whole arm) if every cell it would move to is free.
     ///  - Switch_1 (momentary) is active while a barrel or an arm segment lies on it.
     ///  - Switch_2 (toggle) flips each time an arm or barrel enters its cell.
-    ///  - A door is open while any linked switch is active, and also while something stands in its doorway.
+    ///  - A hand starts one cell in front of its cat (the facing stored in the level), never on the body.
+    ///  - A door is open while any linked switch is active, and also while a barrel, severed hand, hand tip or
+    ///    the start cell of an arm is in its doorway.
+    ///  - When a door closes while an arm passes through it, the arm is cut: the part from the door on is removed,
+    ///    the arm ends just in front of the door, and the old hand stays behind as a severed hand that acts like a barrel.
     /// </summary>
     public sealed class GridManager : MonoBehaviour
     {
@@ -31,6 +36,8 @@ namespace Catshakes
         [SerializeField] private GameObject floorTilePrefab;
         [SerializeField] private GameObject wallPrefab;
         [SerializeField] private Barrel barrelPrefab;
+        [Tooltip("Optional. Prefab of the severed hand (a Barrel component). When empty, the barrel prefab is used with the cat's hand sprite.")]
+        [SerializeField] private Barrel severedHandPrefab;
         [SerializeField] private SwitchEntity momentarySwitchPrefab;
         [SerializeField] private SwitchEntity toggleSwitchPrefab;
         [SerializeField] private DoorEntity doorPrefab;
@@ -41,6 +48,7 @@ namespace Catshakes
 
         private readonly HashSet<Vector2Int> walls = new HashSet<Vector2Int>();
         private readonly List<Barrel> barrels = new List<Barrel>();
+        private readonly List<Barrel> severedHands = new List<Barrel>();
         private readonly Dictionary<Vector2Int, Barrel> barrelsByCell = new Dictionary<Vector2Int, Barrel>();
         private readonly List<SwitchEntity> switches = new List<SwitchEntity>();
         private readonly List<SwitchEntity> toggleSwitches = new List<SwitchEntity>();
@@ -67,8 +75,17 @@ namespace Catshakes
         /// <summary>Raised once when the two hands meet on the same cell.</summary>
         public event Action Won;
 
+        /// <summary>
+        /// Raised when the victory effects have finished and the result may be shown (win popup). The scene flow
+        /// calls <see cref="FinishWinPresentation"/>; <see cref="Won"/> itself fires immediately.
+        /// </summary>
+        public event Action WinPresentationFinished;
+
         /// <summary>Raised after every move attempt, successful or blocked (useful for sound and haptics).</summary>
         public event Action<CatId, MoveOutcome> MoveResolved;
+
+        /// <summary>Raised when a closing door cuts the arm of a cat.</summary>
+        public event Action<CatId> ArmCut;
 
         /// <summary>Raised when the controlled cat changes.</summary>
         public event Action<CatId> ActiveCatChanged;
@@ -77,6 +94,9 @@ namespace Catshakes
         public LevelDataSO CurrentLevel => currentLevel;
         public bool IsLevelLoaded => currentLevel != null && coords != null;
         public bool IsWon => isWon;
+
+        /// <summary>True while a cat is still playing the cut animation; moves are rejected until it is done.</summary>
+        public bool IsBusy => cats != null && (cats[0].IsPlayingCut || cats[1].IsPlayingCut);
         public int MoveCount => moveCount;
         public bool CanUndo => IsLevelLoaded && !isWon && undoStack.Count > 0;
         public CatId ActiveCat => activeCat;
@@ -84,6 +104,25 @@ namespace Catshakes
         private void Awake()
         {
             cats = new[] { catA, catB };
+        }
+
+        private void OnEnable()
+        {
+            SoundManager.BindGrid(this);
+        }
+
+        private void OnDisable()
+        {
+            SoundManager.UnbindGrid(this);
+        }
+
+        /// <summary>Tells listeners (the win popup) that the victory presentation is over.</summary>
+        public void FinishWinPresentation()
+        {
+            if (isWon)
+            {
+                WinPresentationFinished?.Invoke();
+            }
         }
 
         public CatArmController GetCat(CatId id)
@@ -139,8 +178,8 @@ namespace Catshakes
 
             OrientDoors();
 
-            catA.Initialize(coords, level.GetCatStart(CatId.CatA), level.GetMaxSteps(CatId.CatA));
-            catB.Initialize(coords, level.GetCatStart(CatId.CatB), level.GetMaxSteps(CatId.CatB));
+            catA.Initialize(coords, level.GetCatStart(CatId.CatA), level.GetHandStart(CatId.CatA), level.GetFacing(CatId.CatA), level.GetMaxSteps(CatId.CatA));
+            catB.Initialize(coords, level.GetCatStart(CatId.CatB), level.GetHandStart(CatId.CatB), level.GetFacing(CatId.CatB), level.GetMaxSteps(CatId.CatB));
 
             moveCount = 0;
             isWon = false;
@@ -171,6 +210,7 @@ namespace Catshakes
             spawnedObjects.Clear();
             walls.Clear();
             barrels.Clear();
+            severedHands.Clear();
             barrelsByCell.Clear();
             switches.Clear();
             toggleSwitches.Clear();
@@ -282,7 +322,7 @@ namespace Catshakes
                 return false;
             }
 
-            return EvaluateEnter(targetPos, pushDir, mover, out _, out _).IsSuccess();
+            return EvaluateEnter(targetPos, pushDir, mover, out _, out _, out _).IsSuccess();
         }
 
         /// <summary>Moves the hand of a cat one cell in a direction (extend, push, or retract).</summary>
@@ -310,7 +350,7 @@ namespace Catshakes
 
         private MoveOutcome ResolveMove(CatArmController cat, Vector2Int direction)
         {
-            if (!IsLevelLoaded || isWon)
+            if (!IsLevelLoaded || isWon || IsBusy)
             {
                 return MoveOutcome.BlockedInputLocked;
             }
@@ -331,7 +371,7 @@ namespace Catshakes
                 return MoveOutcome.BlockedNoStepsLeft;
             }
 
-            MoveOutcome outcome = EvaluateEnter(target, direction, cat, out Barrel pushedBarrel, out Vector2Int barrelDestination);
+            MoveOutcome outcome = EvaluateEnter(target, direction, cat, out Barrel pushedBarrel, out Vector2Int barrelDestination, out CatArmController pushedCat);
             if (!outcome.IsSuccess())
             {
                 return outcome;
@@ -339,14 +379,27 @@ namespace Catshakes
 
             PushUndoSnapshot();
 
+            if (pushedCat != null)
+            {
+                PushCat(pushedCat, direction);
+            }
+
             if (pushedBarrel != null)
             {
                 MoveBarrel(pushedBarrel, barrelDestination);
                 FlipToggleAt(barrelDestination);
             }
 
+            // A hand that meets the other cat's hand does not "step onto" that cell: whatever lies there
+            // (for example a toggle switch under the other hand) is already pressed by the other hand.
+            bool isHandshake = cats[(int)cat.Id.Other()].HandPosition == target;
+
             cat.Extend(target);
-            FlipToggleAt(target);
+            if (!isHandshake)
+            {
+                FlipToggleAt(target);
+            }
+
             CommitMove();
             return outcome;
         }
@@ -359,9 +412,11 @@ namespace Catshakes
             Vector2Int direction,
             CatArmController mover,
             out Barrel pushedBarrel,
-            out Vector2Int barrelDestination)
+            out Vector2Int barrelDestination,
+            out CatArmController pushedCat)
         {
             pushedBarrel = null;
+            pushedCat = null;
             barrelDestination = target + direction;
 
             if (!coords.IsInside(target))
@@ -377,6 +432,19 @@ namespace Catshakes
             if (IsClosedDoor(target))
             {
                 return MoveOutcome.BlockedByClosedDoor;
+            }
+
+            // The other cat's body can be pushed away, but only as a whole (body and arm move together).
+            CatArmController other = mover != null ? cats[(int)mover.Id.Other()] : null;
+            if (other != null && target == other.RootPosition)
+            {
+                if (!CanCatShift(other, direction, mover))
+                {
+                    return MoveOutcome.BlockedByArm;
+                }
+
+                pushedCat = other;
+                return MoveOutcome.ExtendedAndPushedCat;
             }
 
             if (IsBlockedByCatBody(target, mover))
@@ -398,6 +466,51 @@ namespace Catshakes
             return MoveOutcome.Extended;
         }
 
+        /// <summary>Can <paramref name="cat"/> (body and every arm cell) move one cell in <paramref name="direction"/>?</summary>
+        private bool CanCatShift(CatArmController cat, Vector2Int direction, CatArmController pusher)
+        {
+            if (cat.IsPlayingCut || !CanCatEnterCell(cat.RootPosition + direction, pusher))
+            {
+                return false;
+            }
+
+            IReadOnlyList<Vector2Int> path = cat.ArmPath;
+            for (int i = 0; i < path.Count; i++)
+            {
+                if (!CanCatEnterCell(path[i] + direction, pusher))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool CanCatEnterCell(Vector2Int cell, CatArmController pusher)
+        {
+            return coords.IsInside(cell)
+                   && !walls.Contains(cell)
+                   && !IsClosedDoor(cell)
+                   && !barrelsByCell.ContainsKey(cell)
+                   && !pusher.OccupiesCell(cell);
+        }
+
+        private void PushCat(CatArmController cat, Vector2Int direction)
+        {
+            var oldCells = new HashSet<Vector2Int>(cat.ArmPath);
+            cat.ShiftBy(direction);
+
+            // Arm cells that moved onto a toggle switch flip it, like an arm entering that cell.
+            IReadOnlyList<Vector2Int> path = cat.ArmPath;
+            for (int i = 0; i < path.Count; i++)
+            {
+                if (!oldCells.Contains(path[i]))
+                {
+                    FlipToggleAt(path[i]);
+                }
+            }
+        }
+
         private bool IsBlockedByCatBody(Vector2Int cell, CatArmController mover)
         {
             for (int i = 0; i < cats.Length; i++)
@@ -408,8 +521,8 @@ namespace Catshakes
                     continue;
                 }
 
-                // Only an extended hand can be shaken; a cat's body (root cell) is never enterable.
-                bool isHandshake = mover != null && cat != mover && cat.HasExtendedArm && cat.HandPosition == cell;
+                // Only the other cat's hand can be shaken; a cat's body (root cell) and arm are never enterable.
+                bool isHandshake = mover != null && cat != mover && cat.HandPosition == cell;
                 if (!isHandshake)
                 {
                     return true;
@@ -456,10 +569,21 @@ namespace Catshakes
         private void CommitMove()
         {
             moveCount++;
-            RefreshInteractiveState();
+
+            // Two hands on one cell is the win, whatever the doors do in the same moment: no arm is cut then.
+            bool handsMet = catA.HandPosition == catB.HandPosition;
+            if (handsMet)
+            {
+                UpdateSwitchesAndDoors();
+            }
+            else
+            {
+                RefreshInteractiveState();
+            }
+
             StateChanged?.Invoke();
 
-            if (catA.HasExtendedArm && catB.HasExtendedArm && catA.HandPosition == catB.HandPosition)
+            if (handsMet)
             {
                 isWon = true;
                 Won?.Invoke();
@@ -468,8 +592,26 @@ namespace Catshakes
 
         // ---------------------------------------------------------------- switches and doors
 
-        /// <summary>Recomputes momentary switches first, then every door.</summary>
+        /// <summary>
+        /// Recomputes switches and doors, then cuts every arm that a closed door now divides. A cut moves the hand and
+        /// shortens the arm, which can change switches again, so this repeats until nothing changes.
+        /// </summary>
         private void RefreshInteractiveState()
+        {
+            const int maxPasses = 16;
+            for (int pass = 0; pass < maxPasses; pass++)
+            {
+                UpdateSwitchesAndDoors();
+                if (!CutArmsAtClosedDoors())
+                {
+                    return;
+                }
+            }
+
+            UpdateSwitchesAndDoors();
+        }
+
+        private void UpdateSwitchesAndDoors()
         {
             for (int i = 0; i < switches.Count; i++)
             {
@@ -493,9 +635,79 @@ namespace Catshakes
             return barrelsByCell.ContainsKey(cell) || catA.ArmContains(cell) || catB.ArmContains(cell);
         }
 
+        /// <summary>
+        /// Something that keeps a door open: a barrel or severed hand, a cat body, a hand tip or the start cell of an arm.
+        /// Cells in the middle of an arm do not count, so a closing door can cut the arm there.
+        /// </summary>
         private bool IsDoorwayOccupied(Vector2Int cell)
         {
-            return barrelsByCell.ContainsKey(cell) || IsOccupiedByCat(cell);
+            return barrelsByCell.ContainsKey(cell)
+                   || catA.RootPosition == cell
+                   || catB.RootPosition == cell
+                   || catA.HoldsDoorAt(cell)
+                   || catB.HoldsDoorAt(cell);
+        }
+
+        // ---------------------------------------------------------------- arm cutting
+
+        private bool CutArmsAtClosedDoors()
+        {
+            bool cutAny = false;
+
+            for (int c = 0; c < cats.Length; c++)
+            {
+                CatArmController cat = cats[c];
+                int cutIndex = -1;
+
+                // The door nearest to the cat wins when the arm passes through several closed doors.
+                for (int d = 0; d < doors.Count; d++)
+                {
+                    DoorEntity door = doors[d];
+                    if (!door.IsOpen && cat.TryFindPassThroughIndex(door.GridPosition, out int index) && (cutIndex < 0 || index < cutIndex))
+                    {
+                        cutIndex = index;
+                    }
+                }
+
+                if (cutIndex < 0)
+                {
+                    continue;
+                }
+
+                CutArm(cat, cutIndex);
+                cutAny = true;
+            }
+
+            return cutAny;
+        }
+
+        private void CutArm(CatArmController cat, int cutIndex)
+        {
+            cat.CompleteAnimationImmediately();
+            SpawnSeveredHand(cat);
+            cat.CutAt(cutIndex);
+            ArmCut?.Invoke(cat.Id);
+        }
+
+        /// <summary>Leaves the hand of <paramref name="cat"/> behind on its current cell as a pushable crate.</summary>
+        private void SpawnSeveredHand(CatArmController cat)
+        {
+            bool hasDedicatedPrefab = severedHandPrefab != null;
+            Barrel prefab = hasDedicatedPrefab ? severedHandPrefab : barrelPrefab;
+            if (!RequirePrefab(prefab, "severedHandPrefab (or barrelPrefab)"))
+            {
+                return;
+            }
+
+            Vector2Int cell = cat.HandPosition;
+            Barrel hand = Instantiate(prefab, levelRoot);
+            hand.Initialize(coords, cell);
+            hand.SetVisual(hasDedicatedPrefab ? null : cat.HandSprite, cat.HandAngle, cat.HandScale);
+            hand.PlayAppear(0.2f);
+
+            severedHands.Add(hand);
+            barrelsByCell[cell] = hand;
+            spawnedObjects.Add(hand.gameObject);
         }
 
         private bool IsLinkActive(int linkId)
@@ -532,13 +744,19 @@ namespace Catshakes
                 toggleStates.Add(toggleSwitches[i].IsActive);
             }
 
-            return new GameStateSnapshot(catA.ArmPath, catB.ArmPath, barrelCells, toggleStates, moveCount);
+            var severedCells = new List<Vector2Int>(severedHands.Count);
+            for (int i = 0; i < severedHands.Count; i++)
+            {
+                severedCells.Add(severedHands[i].GridPosition);
+            }
+
+            return new GameStateSnapshot(catA.RootPosition, catB.RootPosition, catA.ArmPath, catB.ArmPath, barrelCells, severedCells, toggleStates, moveCount);
         }
 
         private void ApplySnapshot(GameStateSnapshot snapshot)
         {
-            catA.RestorePath(snapshot.GetArmPath(CatId.CatA));
-            catB.RestorePath(snapshot.GetArmPath(CatId.CatB));
+            catA.RestoreState(snapshot.GetRoot(CatId.CatA), snapshot.GetArmPath(CatId.CatA));
+            catB.RestoreState(snapshot.GetRoot(CatId.CatB), snapshot.GetArmPath(CatId.CatB));
 
             barrelsByCell.Clear();
             IReadOnlyList<Vector2Int> cells = snapshot.BarrelPositions;
@@ -546,6 +764,22 @@ namespace Catshakes
             {
                 barrels[i].SetGridPosition(cells[i], false);
                 barrelsByCell[cells[i]] = barrels[i];
+            }
+
+            // Severed hands are only ever added, so the snapshot holds a prefix of the current list.
+            IReadOnlyList<Vector2Int> severedCells = snapshot.SeveredHandPositions;
+            while (severedHands.Count > severedCells.Count)
+            {
+                Barrel extra = severedHands[severedHands.Count - 1];
+                severedHands.RemoveAt(severedHands.Count - 1);
+                spawnedObjects.Remove(extra.gameObject);
+                Destroy(extra.gameObject);
+            }
+
+            for (int i = 0; i < severedHands.Count; i++)
+            {
+                severedHands[i].SetGridPosition(severedCells[i], false);
+                barrelsByCell[severedCells[i]] = severedHands[i];
             }
 
             IReadOnlyList<bool> states = snapshot.ToggleStates;

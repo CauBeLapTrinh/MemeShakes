@@ -10,25 +10,41 @@ namespace Catshakes
     public sealed class GameStateSnapshot
     {
         private readonly Vector2Int[][] armPaths;
+        private readonly Vector2Int[] roots;
         private readonly Vector2Int[] barrelPositions;
+        private readonly Vector2Int[] severedHandPositions;
         private readonly bool[] toggleStates;
 
         public GameStateSnapshot(
+            Vector2Int rootCatA,
+            Vector2Int rootCatB,
             IReadOnlyList<Vector2Int> armPathCatA,
             IReadOnlyList<Vector2Int> armPathCatB,
             IReadOnlyList<Vector2Int> barrelPositions,
+            IReadOnlyList<Vector2Int> severedHandPositions,
             IReadOnlyList<bool> toggleStates,
             int moveCount)
         {
+            roots = new[] { rootCatA, rootCatB };
             armPaths = new[] { Copy(armPathCatA), Copy(armPathCatB) };
             this.barrelPositions = Copy(barrelPositions);
+            this.severedHandPositions = Copy(severedHandPositions);
             this.toggleStates = Copy(toggleStates);
             MoveCount = moveCount;
         }
 
         public int MoveCount { get; }
         public IReadOnlyList<Vector2Int> BarrelPositions => barrelPositions;
+
+        /// <summary>Cells of the severed hands that exist in this state, in the order they were created.</summary>
+        public IReadOnlyList<Vector2Int> SeveredHandPositions => severedHandPositions;
         public IReadOnlyList<bool> ToggleStates => toggleStates;
+
+        /// <summary>The cell of the cat's body. It changes when the other cat pushes it.</summary>
+        public Vector2Int GetRoot(CatId id)
+        {
+            return roots[(int)id];
+        }
 
         public IReadOnlyList<Vector2Int> GetArmPath(CatId id)
         {
