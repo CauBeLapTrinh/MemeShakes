@@ -27,6 +27,8 @@ namespace Catshakes
         [SerializeField] private Button resetButton;
         [SerializeField] private Button switchCatButton;
         [SerializeField] private Button menuButton;
+        [Tooltip("Opens the shared Settings popup (music and sound volume).")]
+        [SerializeField] private Button settingsButton;
 
         [Header("Win panel")]
         [SerializeField] private GameObject winPanel;
@@ -58,6 +60,7 @@ namespace Catshakes
             Bind(resetButton, HandleResetClicked);
             Bind(switchCatButton, HandleSwitchCatClicked);
             Bind(menuButton, HandleMenuClicked);
+            Bind(settingsButton, HandleSettingsClicked);
             Bind(nextLevelButton, HandleNextLevelClicked);
             Bind(levelSelectButton, HandleMenuClicked);
             Bind(replayButton, HandleReplayClicked);
@@ -297,6 +300,21 @@ namespace Catshakes
             if (button != null)
             {
                 button.onClick.AddListener(action);
+
+                // Buttons with UIButtonPress already play the click sound.
+                if (button.GetComponent<UIButtonPress>() == null)
+                {
+                    button.onClick.AddListener(() => SoundManager.Play(SoundId.Button));
+                }
+            }
+        }
+
+        private void HandleSettingsClicked()
+        {
+            PersistentPopups popups = PersistentPopups.Instance;
+            if (popups != null)
+            {
+                popups.OpenSettings();
             }
         }
 

@@ -143,10 +143,19 @@ MonoBehaviour:
   bodyVisual: {fileID: 6504718295426285230}
   handVisual: {fileID: 7426438988927042859}
   armLine: {fileID: 3302555491933338869}
+  bodySprite: {fileID: 21300000, guid: 4e1c07ae4b6b5144e93e6b1befe74a8a, type: 3}
+  bodyNoArmSprite: {fileID: 21300000, guid: caa8bbebda5e84d49a3fdf9591bac977, type: 3}
+  handSprite: {fileID: -1351065012540763489, guid: edbc59d759a29704eb5e0eb2005dd2cf, type: 3}
+  straightArmSprite: {fileID: 21300000, guid: 21457cb6dc45f124ba0c146341930064, type: 3}
+  elbowArmSprite: {fileID: 21300000, guid: 748334c9633dcc14a8d0f36484d8a8d2, type: 3}
   selectionIndicator: {fileID: 204278204952594507}
   stepsLabel: {fileID: 1785900133419175454}
   stepsLabelFormat: '{0}'
+  stepsLabelOffset: {x: 0.56, y: 0.6}
   moveDuration: 0.12
+  cutPauseDuration: 0.15
+  cutRetractStepDuration: 0.08
+  cutRegrowDuration: 0.3
 --- !u!1 &3635383975031187234
 GameObject:
   m_ObjectHideFlags: 0
@@ -230,7 +239,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 8
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 6117005752084948712, guid: 0ddd7a7ed34db2a45bd2860b7325cdfb, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4e1c07ae4b6b5144e93e6b1befe74a8a, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -302,7 +311,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  - {fileID: 2100000, guid: db974f31a2e865341be7bc64cbffa8e1, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -348,8 +357,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 0
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 2100000, guid: db974f31a2e865341be7bc64cbffa8e1, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -373,13 +382,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 6
-  m_fontSizeBase: 6
+  m_fontSize: 9
+  m_fontSizeBase: 9
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 1
+  m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 512
   m_textAlignment: 65535
@@ -642,12 +651,12 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 140433255743585067, guid: cdc52dd28da679b4591c46f1a1dfcc78, type: 3}
+  m_Sprite: {fileID: -1351065012540763489, guid: edbc59d759a29704eb5e0eb2005dd2cf, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.51, y: 1.05}
+  m_Size: {x: 1.19, y: 1.2}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1

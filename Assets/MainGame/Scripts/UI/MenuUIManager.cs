@@ -167,7 +167,21 @@ namespace Catshakes
         /// <summary>Main menu: Settings.</summary>
         public void OnSettingsClicked()
         {
-            if (!CanNavigate() || State != MenuState.MainMenu || settingsGroup == null)
+            if (!CanNavigate() || State != MenuState.MainMenu)
+            {
+                return;
+            }
+
+            // The shared popup (kept across scenes) is preferred; the popup inside this scene is the fallback.
+            PersistentPopups popups = PersistentPopups.Instance;
+            if (popups != null)
+            {
+                Click();
+                popups.OpenSettings();
+                return;
+            }
+
+            if (settingsGroup == null)
             {
                 return;
             }
@@ -236,11 +250,17 @@ namespace Catshakes
 
         private bool CanNavigate()
         {
-            return !isTransitioning && !IsSettingsOpen && !isSettingsAnimating;
+            return !isTransitioning && !IsSettingsOpen && !isSettingsAnimating && !PersistentPopups.IsAnyOpen;
         }
 
         private void HandleBackKey()
         {
+            if (PersistentPopups.IsAnyOpen)
+            {
+                // The shared popup closes itself on Escape.
+                return;
+            }
+
             if (IsSettingsOpen)
             {
                 OnSettingsCloseClicked();

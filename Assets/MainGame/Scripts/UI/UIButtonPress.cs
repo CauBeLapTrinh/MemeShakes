@@ -6,14 +6,16 @@ namespace Catshakes
 {
     /// <summary>
     /// Squishes a button a little while it is held down and springs it back on release, so pixel-art buttons
-    /// (which have no pressed sprite) still give feedback. Add it next to the Button.
+    /// (which have no pressed sprite) still give feedback, and plays the click sound. Add it next to the Button.
     /// </summary>
     [DisallowMultipleComponent]
-    public sealed class UIButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
+    public sealed class UIButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler, IPointerClickHandler
     {
         [SerializeField, Range(0.7f, 1f)] private float pressedScale = 0.93f;
         [Tooltip("Scale change per second; 1.5 turns a 7% squish into about 50 ms.")]
         [SerializeField, Min(0.1f)] private float speed = 1.5f;
+        [Tooltip("Plays the shared button click sound (SoundManager) when the button is clicked.")]
+        [SerializeField] private bool playClickSound = true;
 
         private Selectable selectable;
         private Vector3 restScale;
@@ -53,6 +55,14 @@ namespace Catshakes
         public void OnPointerExit(PointerEventData eventData)
         {
             targetFactor = 1f;
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (playClickSound && (selectable == null || selectable.IsInteractable()))
+            {
+                SoundManager.Play(SoundId.Button);
+            }
         }
 
         private void Update()

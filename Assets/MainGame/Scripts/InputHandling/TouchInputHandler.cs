@@ -92,7 +92,7 @@ namespace Catshakes
 
         private void Update()
         {
-            if (gridManager == null || gameCamera == null || !gridManager.IsLevelLoaded)
+            if (gridManager == null || gameCamera == null || !gridManager.IsLevelLoaded || PersistentPopups.IsAnyOpen)
             {
                 isTracking = false;
                 return;

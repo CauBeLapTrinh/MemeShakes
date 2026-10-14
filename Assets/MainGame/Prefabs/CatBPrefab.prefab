@@ -21,6 +21,10 @@ PrefabInstance:
       value: 0.3529412
       objectReference: {fileID: 0}
     - target: {fileID: 1785900133419175454, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+    - target: {fileID: 1785900133419175454, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
       propertyPath: m_fontColor.g
       value: 0.78431374
       objectReference: {fileID: 0}
@@ -28,10 +32,18 @@ PrefabInstance:
       propertyPath: m_fontColor.r
       value: 0.3529412
       objectReference: {fileID: 0}
+    - target: {fileID: 1785900133419175454, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: db974f31a2e865341be7bc64cbffa8e1, type: 2}
     - target: {fileID: 3050718249536873728, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
       propertyPath: m_Name
       value: CatBPrefab
       objectReference: {fileID: 0}
+    - target: {fileID: 6324371999935501076, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: db974f31a2e865341be7bc64cbffa8e1, type: 2}
     - target: {fileID: 7278873847128919732, guid: 73ae75ab953d8474ebb9ac689c5109a6, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

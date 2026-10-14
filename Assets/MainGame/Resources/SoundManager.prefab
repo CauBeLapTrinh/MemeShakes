@@ -49,3 +49,11 @@ MonoBehaviour:
   pushClip: {fileID: 8300000, guid: 7e3f50a9c0b37544280cfe02f98f7e79, type: 3}
   winClip: {fileID: 8300000, guid: 8b7c5e7a75e476940b3912791f3dc72f, type: 3}
   loseClip: {fileID: 8300000, guid: 12f9c81ae28793e408bec930d1c7ea83, type: 3}
+  switchCatClip: {fileID: 8300000, guid: e969766edb9abfa46bb8669291a9d436, type: 3}
+  cutClip: {fileID: 8300000, guid: e6467c092ea9c4049a32dfc84361e982, type: 3}
+  buttonClip: {fileID: 8300000, guid: 402cc2cdccdb5404aa99fa8f463b6c6a, type: 3}
+  doorClip: {fileID: 8300000, guid: f46b99535e01aa442b1635d89ac1b710, type: 3}
+  switchClip: {fileID: 8300000, guid: b20947cc4fbbe1247ac22e0e42111634, type: 3}
+  musicSource: {fileID: 0}
+  musicClip: {fileID: 8300000, guid: 0306db9c45572ce4b8a90e88cbfdb615, type: 3}
+  musicVolumeScale: 0.6

@@ -377,8 +377,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Moves: 0'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -548,9 +548,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc336b080dfc59144b22196258896a0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Catshakes.CameraFitter
-  boardPaddingCells: 0.5
-  topUiFraction: 0.15
+  boardPaddingCells: 0.3
+  topUiFraction: 0.14
   bottomUiFraction: 0.13
+  sideUiFraction: 0.03
+  minVisibleHeightCells: 3.5
   cameraZ: -10
 --- !u!20 &588972764
 Camera:
@@ -743,8 +745,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Controlling: Cat A'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -907,8 +909,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Handshake!
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1798,8 +1800,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'Moves: 0'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2045,6 +2047,7 @@ MonoBehaviour:
   resetButton: {fileID: 1193298611}
   switchCatButton: {fileID: 0}
   menuButton: {fileID: 827914901}
+  settingsButton: {fileID: 1238609229}
   winPanel: {fileID: 1159122601}
   winTitleText: {fileID: 649517809}
   winSummaryText: {fileID: 780865720}
@@ -2145,6 +2148,7 @@ RectTransform:
   - {fileID: 1193298614}
   - {fileID: 608270026}
   - {fileID: 1159122602}
+  - {fileID: 1238609232}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2514,6 +2518,126 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
   m_Asset: {fileID: 680933916}
   m_ActionId: 9caa3d8a-6b2f-4e8e-8bad-6ede561bd9be
+--- !u!1 &1238609228
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1238609232}
+  - component: {fileID: 1238609231}
+  - component: {fileID: 1238609230}
+  - component: {fileID: 1238609229}
+  m_Layer: 0
+  m_Name: SettingsButton
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1238609229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238609228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+  m_Navigation:
+    m_Mode: 3
+    m_WrapAround: 0
+    m_SelectOnUp: {fileID: 0}
+    m_SelectOnDown: {fileID: 0}
+    m_SelectOnLeft: {fileID: 0}
+    m_SelectOnRight: {fileID: 0}
+  m_Transition: 1
+  m_Colors:
+    m_NormalColor: {r: 1, g: 1, b: 1, a: 1}
+    m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
+    m_SelectedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
+    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_ColorMultiplier: 1
+    m_FadeDuration: 0.1
+  m_SpriteState:
+    m_HighlightedSprite: {fileID: 0}
+    m_PressedSprite: {fileID: 0}
+    m_SelectedSprite: {fileID: 0}
+    m_DisabledSprite: {fileID: 0}
+  m_AnimationTriggers:
+    m_NormalTrigger: Normal
+    m_HighlightedTrigger: Highlighted
+    m_PressedTrigger: Pressed
+    m_SelectedTrigger: Selected
+    m_DisabledTrigger: Disabled
+  m_Interactable: 1
+  m_TargetGraphic: {fileID: 1238609230}
+  m_OnClick:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &1238609230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238609228}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: -1638073398957448169, guid: 3fd6a5500adbe8b47a77cfe5f2cf663c, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 1
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1238609231
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238609228}
+  m_CullTransparentMesh: 1
+--- !u!224 &1238609232
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1238609228}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 835954519}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 174, y: -25}
+  m_SizeDelta: {x: 110, y: 108}
+  m_Pivot: {x: 0, y: 1}
 --- !u!1 &1288274756
 GameObject:
   m_ObjectHideFlags: 0
@@ -2554,8 +2678,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: Tutorial
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -2691,8 +2815,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 00:00.00
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -3140,9 +3264,13 @@ MonoBehaviour:
   cameraFitter: {fileID: 588972763}
   fallbackLevel: {fileID: 11400000, guid: f35dd6564ea74a247bd35a92d3ce9e81, type: 2}
   winEffectPrefab: {fileID: 5028040222796717543, guid: b8cf7df9151ab974cb919d95be02f887, type: 3}
-  handshakeSprite: {fileID: -5637367360313687238, guid: 7c94f8d12981a53499ddb916b593808a, type: 3}
+  handshakeSprite: {fileID: 21300000, guid: 610f8aebce2663244b773e6cee4c5302, type: 3}
   winEffectDuration: 1.4
   speedrunAdvanceDelay: 0.6
+  playPixelEffects: 1
+  switchSparkleColor: {r: 0.45, g: 1, b: 0.5, a: 1}
+  catASparkleColor: {r: 1, g: 0.7, b: 0.25, a: 1}
+  catBSparkleColor: {r: 0.4, g: 0.75, b: 1, a: 1}
 --- !u!114 &1812040734
 MonoBehaviour:
   m_ObjectHideFlags: 0

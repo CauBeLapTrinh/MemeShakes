@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Catshakes
 {
     /// <summary>
-    /// Victory effect played where the two hands meet: a burst of confetti and an expanding ring.
+    /// Victory effect played where the two hands meet: a burst of pixel confetti and an expanding pixel ring.
     /// The prefab Assets/MainGame/Effects/WinEffect holds the ring sprite and the confetti particle system; when no
     /// prefab is assigned, an equivalent effect is generated in code. The object removes itself afterwards.
     /// </summary>
@@ -124,7 +124,8 @@ namespace Catshakes
             main.loop = false;
             main.startLifetime = new ParticleSystem.MinMaxCurve(0.7f, 1.2f);
             main.startSpeed = new ParticleSystem.MinMaxCurve(cellSize * 2f, cellSize * 5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(cellSize * 0.08f, cellSize * 0.18f);
+            main.startSize = new ParticleSystem.MinMaxCurve(cellSize * 0.06f, cellSize * 0.12f);
+            main.startRotation = 0f;
             main.gravityModifier = 0.8f;
             main.simulationSpace = ParticleSystemSimulationSpace.World;
 
@@ -190,23 +191,26 @@ namespace Catshakes
             return dotTexture;
         }
 
-        /// <summary>A soft white ring, one unit wide when used as a sprite (also saved as a png by the editor setup menu).</summary>
+        /// <summary>
+        /// A crisp pixel-art ring (low resolution, point filtered), one unit wide when used as a sprite
+        /// (also saved as a png by the editor setup menu).
+        /// </summary>
         public static Texture2D CreateRingTexture()
         {
-            return CreateRadialTexture(128, distance => 1f - Mathf.Clamp01(Mathf.Abs(distance - 0.88f) / 0.07f));
+            return CreateRadialTexture(24, distance => distance > 0.74f && distance <= 0.96f ? 1f : 0f);
         }
 
-        /// <summary>A soft white dot for the confetti particles.</summary>
+        /// <summary>A solid square: every confetti particle is one crisp pixel.</summary>
         public static Texture2D CreateDotTexture()
         {
-            return CreateRadialTexture(32, distance => Mathf.Clamp01((1f - distance) * 6f));
+            return CreateRadialTexture(4, distance => 1f);
         }
 
         private static Texture2D CreateRadialTexture(int size, System.Func<float, float> alphaAtDistance)
         {
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
             texture.wrapMode = TextureWrapMode.Clamp;
-            texture.filterMode = FilterMode.Bilinear;
+            texture.filterMode = FilterMode.Point;
 
             var pixels = new Color32[size * size];
             float radius = size * 0.5f;

@@ -65,6 +65,7 @@ namespace Catshakes
         private CatId activeCat = CatId.CatA;
         private int moveCount;
         private bool isWon;
+        private bool interactiveEventsMuted;
 
         /// <summary>Raised after a level has been built and is ready to play.</summary>
         public event Action LevelLoaded;
@@ -89,6 +90,21 @@ namespace Catshakes
 
         /// <summary>Raised when the controlled cat changes.</summary>
         public event Action<CatId> ActiveCatChanged;
+
+        /// <summary>Raised when the player switches to the other cat (not when a level loads).</summary>
+        public event Action<CatId> CatSwitched;
+
+        /// <summary>Raised when a closing door cuts an arm, with the door cell.</summary>
+        public event Action<CatId, Vector2Int> ArmCutAtCell;
+
+        /// <summary>Raised when a door opens or closes during play (not on load, undo or reset). Arguments: cell, open.</summary>
+        public event Action<Vector2Int, bool> DoorChanged;
+
+        /// <summary>Raised when a switch turns on or off during play (not on load, undo or reset). Arguments: cell, active.</summary>
+        public event Action<Vector2Int, bool> SwitchChanged;
+
+        /// <summary>Raised when a crate, severed hand or the other cat is pushed. Arguments: cell it moved to, direction.</summary>
+        public event Action<Vector2Int, Vector2Int> ObjectPushed;
 
         public GridSpace Coords => coords;
         public LevelDataSO CurrentLevel => currentLevel;
@@ -184,7 +200,9 @@ namespace Catshakes
             moveCount = 0;
             isWon = false;
             undoStack.Clear();
+            interactiveEventsMuted = true;
             RefreshInteractiveState();
+            interactiveEventsMuted = false;
             initialSnapshot = CaptureSnapshot();
 
             activeCat = CatId.CatA;
@@ -264,6 +282,7 @@ namespace Catshakes
             if (changed)
             {
                 ActiveCatChanged?.Invoke(activeCat);
+                CatSwitched?.Invoke(activeCat);
             }
         }
 
@@ -382,12 +401,14 @@ namespace Catshakes
             if (pushedCat != null)
             {
                 PushCat(pushedCat, direction);
+                ObjectPushed?.Invoke(pushedCat.RootPosition, direction);
             }
 
             if (pushedBarrel != null)
             {
                 MoveBarrel(pushedBarrel, barrelDestination);
                 FlipToggleAt(barrelDestination);
+                ObjectPushed?.Invoke(barrelDestination, direction);
             }
 
             // A hand that meets the other cat's hand does not "step onto" that cell: whatever lies there
@@ -447,7 +468,7 @@ namespace Catshakes
                 return MoveOutcome.ExtendedAndPushedCat;
             }
 
-            if (IsBlockedByCatBody(target, mover))
+            if (IsBlockedByCatBody(target, direction, mover))
             {
                 return MoveOutcome.BlockedByArm;
             }
@@ -511,7 +532,7 @@ namespace Catshakes
             }
         }
 
-        private bool IsBlockedByCatBody(Vector2Int cell, CatArmController mover)
+        private bool IsBlockedByCatBody(Vector2Int cell, Vector2Int direction, CatArmController mover)
         {
             for (int i = 0; i < cats.Length; i++)
             {
@@ -521,8 +542,9 @@ namespace Catshakes
                     continue;
                 }
 
-                // Only the other cat's hand can be shaken; a cat's body (root cell) and arm are never enterable.
-                bool isHandshake = mover != null && cat != mover && cat.HandPosition == cell;
+                // Only the other cat's hand can be shaken, and only head-on (the two hands point at each other);
+                // a cat's body (root cell) and arm are never enterable.
+                bool isHandshake = mover != null && cat != mover && cat.HandPosition == cell && cat.HandDirection == -direction;
                 if (!isHandshake)
                 {
                     return true;
@@ -563,6 +585,7 @@ namespace Catshakes
             if (switchesByCell.TryGetValue(cell, out SwitchEntity entry) && entry.IsToggle)
             {
                 entry.Flip();
+                RaiseSwitchChanged(entry);
             }
         }
 
@@ -618,7 +641,12 @@ namespace Catshakes
                 SwitchEntity entry = switches[i];
                 if (entry.IsMomentary)
                 {
+                    bool wasActive = entry.IsActive;
                     entry.SetActive(IsCellPressed(entry.GridPosition));
+                    if (entry.IsActive != wasActive)
+                    {
+                        RaiseSwitchChanged(entry);
+                    }
                 }
             }
 
@@ -626,7 +654,20 @@ namespace Catshakes
             {
                 DoorEntity door = doors[i];
                 bool shouldBeOpen = IsLinkActive(door.LinkId) || IsDoorwayOccupied(door.GridPosition);
+                bool wasOpen = door.IsOpen;
                 door.SetOpen(shouldBeOpen);
+                if (door.IsOpen != wasOpen && !interactiveEventsMuted)
+                {
+                    DoorChanged?.Invoke(door.GridPosition, door.IsOpen);
+                }
+            }
+        }
+
+        private void RaiseSwitchChanged(SwitchEntity entry)
+        {
+            if (!interactiveEventsMuted)
+            {
+                SwitchChanged?.Invoke(entry.GridPosition, entry.IsActive);
             }
         }
 
@@ -684,9 +725,11 @@ namespace Catshakes
         private void CutArm(CatArmController cat, int cutIndex)
         {
             cat.CompleteAnimationImmediately();
+            Vector2Int doorCell = cat.ArmPath[cutIndex];
             SpawnSeveredHand(cat);
             cat.CutAt(cutIndex);
             ArmCut?.Invoke(cat.Id);
+            ArmCutAtCell?.Invoke(cat.Id, doorCell);
         }
 
         /// <summary>Leaves the hand of <paramref name="cat"/> behind on its current cell as a pushable crate.</summary>
@@ -789,7 +832,9 @@ namespace Catshakes
             }
 
             moveCount = snapshot.MoveCount;
+            interactiveEventsMuted = true;
             RefreshInteractiveState();
+            interactiveEventsMuted = false;
         }
 
         private void ApplySelection()

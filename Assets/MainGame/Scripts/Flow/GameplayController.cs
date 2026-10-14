@@ -21,18 +21,21 @@ namespace Catshakes
         [Tooltip("Sprite shown when the two hands meet (two hands clasped, Handshakes.png). It replaces both hand sprites. When empty, the hands just meet in the middle of the cell.")]
         [SerializeField] private Sprite handshakeSprite;
 
-        [Tooltip("When the hands meet at an angle, this many pixels are cut off each side of the handshake picture so only the clasp remains.")]
-        [SerializeField, Min(0f)] private float claspTrimPixels = 38f;
-
         [Tooltip("How long the victory effects play before the win popup (or the next Speedrun level) appears.")]
         [SerializeField, Min(0f)] private float winEffectDuration = 1.4f;
 
         [Tooltip("Extra pause after the victory effects, before the next Speedrun level loads.")]
         [SerializeField, Min(0f)] private float speedrunAdvanceDelay = 0.6f;
 
+        [Header("Pixel effects")]
+        [Tooltip("Small pixel particle bursts for moves, pushes, cuts, switches, doors and cat switching.")]
+        [SerializeField] private bool playPixelEffects = true;
+        [SerializeField] private Color switchSparkleColor = new Color(0.45f, 1f, 0.5f);
+        [SerializeField] private Color catASparkleColor = new Color(1f, 0.7f, 0.25f);
+        [SerializeField] private Color catBSparkleColor = new Color(0.4f, 0.75f, 1f);
+
         private Coroutine winRoutine;
         private GameObject handshakeObject;
-        private Sprite claspSprite;
 
         private void OnEnable()
         {
@@ -40,6 +43,12 @@ namespace Catshakes
             {
                 gridManager.Won += HandleWon;
                 gridManager.StateChanged += HandleStateChanged;
+                gridManager.MoveResolved += HandleMoveResolved;
+                gridManager.ObjectPushed += HandleObjectPushed;
+                gridManager.ArmCutAtCell += HandleArmCut;
+                gridManager.SwitchChanged += HandleSwitchChanged;
+                gridManager.DoorChanged += HandleDoorChanged;
+                gridManager.CatSwitched += HandleCatSwitched;
             }
         }
 
@@ -49,6 +58,12 @@ namespace Catshakes
             {
                 gridManager.Won -= HandleWon;
                 gridManager.StateChanged -= HandleStateChanged;
+                gridManager.MoveResolved -= HandleMoveResolved;
+                gridManager.ObjectPushed -= HandleObjectPushed;
+                gridManager.ArmCutAtCell -= HandleArmCut;
+                gridManager.SwitchChanged -= HandleSwitchChanged;
+                gridManager.DoorChanged -= HandleDoorChanged;
+                gridManager.CatSwitched -= HandleCatSwitched;
             }
         }
 
@@ -80,6 +95,76 @@ namespace Catshakes
             }
         }
 
+        // ---------------------------------------------------------------- pixel effects
+
+        private float CellSize => gridManager.Coords.CellSize;
+
+        private Vector3 CellWorld(Vector2Int cell)
+        {
+            return gridManager.Coords.GridToWorld(cell);
+        }
+
+        private void HandleMoveResolved(CatId id, MoveOutcome outcome)
+        {
+            if (!playPixelEffects || (outcome != MoveOutcome.Extended && outcome != MoveOutcome.Retracted))
+            {
+                return;
+            }
+
+            CatArmController cat = gridManager.GetCat(id);
+            Vector2Int direction = cat.HandDirection;
+            if (outcome == MoveOutcome.Retracted)
+            {
+                // The hand moved back: the dust stays where it came from.
+                direction = -direction;
+            }
+
+            PixelFx.Dust(CellWorld(cat.HandPosition), CellSize, direction);
+        }
+
+        private void HandleObjectPushed(Vector2Int cell, Vector2Int direction)
+        {
+            if (playPixelEffects)
+            {
+                PixelFx.Debris(CellWorld(cell), CellSize, direction);
+            }
+        }
+
+        private void HandleArmCut(CatId id, Vector2Int doorCell)
+        {
+            if (playPixelEffects)
+            {
+                PixelFx.Sparks(CellWorld(doorCell), CellSize);
+            }
+        }
+
+        private void HandleSwitchChanged(Vector2Int cell, bool active)
+        {
+            if (playPixelEffects && active)
+            {
+                PixelFx.Sparkle(CellWorld(cell), CellSize, switchSparkleColor);
+            }
+        }
+
+        private void HandleDoorChanged(Vector2Int cell, bool open)
+        {
+            if (playPixelEffects)
+            {
+                PixelFx.DoorDust(CellWorld(cell), CellSize);
+            }
+        }
+
+        private void HandleCatSwitched(CatId id)
+        {
+            if (playPixelEffects)
+            {
+                Color color = id == CatId.CatA ? catASparkleColor : catBSparkleColor;
+                PixelFx.Sparkle(CellWorld(gridManager.GetCat(id).RootPosition), CellSize, color);
+            }
+        }
+
+        // ---------------------------------------------------------------- win
+
         private void HandleWon()
         {
             if (winRoutine != null)
@@ -92,7 +177,7 @@ namespace Catshakes
 
         /// <summary>
         /// Replaces both hands by one handshake sprite (two clasped hands) on the cell where they met. The sprite is turned
-        /// along the direction cat A arrived from and pops in with a small overshoot.
+        /// along the line the hands met on and pops in with a small overshoot.
         /// </summary>
         private void ShowHandshake(Vector3 position)
         {
@@ -103,27 +188,14 @@ namespace Catshakes
             handshakeObject = new GameObject("Handshake");
             handshakeObject.transform.position = position;
 
-            // Direction each hand arrived in. Head-on hands use the full picture (arms included); hands that meet at an
-            // angle use only the clasp, turned along the line between the two arrivals, and the arms join it from the sides.
-            Vector2 arrivalA = AngleToVector(catA.HandAngle);
-            Vector2 arrivalB = AngleToVector(catB.HandAngle);
-            bool headOn = Vector2.Dot(arrivalA, arrivalB) < -0.99f;
-
-            Vector2 axis = headOn ? arrivalA : arrivalA - arrivalB;
-            float angle = Mathf.Atan2(axis.y, axis.x) * Mathf.Rad2Deg;
-            if (angle > 90f)
-            {
-                angle -= 180f;
-            }
-            else if (angle <= -90f)
-            {
-                angle += 180f;
-            }
+            // Hands only meet head-on, so the picture (two arms and the clasp) lies along the line cat A arrived on.
+            Vector2Int arrival = catA.HandDirection;
+            float angle = arrival.x != 0 ? 0f : 90f;
 
             handshakeObject.transform.rotation = Quaternion.Euler(0f, 0f, angle);
 
             var spriteRenderer = handshakeObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = headOn ? handshakeSprite : GetClaspSprite();
+            spriteRenderer.sprite = handshakeSprite;
             spriteRenderer.sortingOrder = Mathf.Max(catA.HandSortingOrder, catB.HandSortingOrder) + 1;
 
             catA.SetHandVisible(false);
@@ -131,26 +203,6 @@ namespace Catshakes
 
             // The hand sprites and the handshake sprite share the same pixel size, so the scale of a hand fits.
             StartCoroutine(PopRoutine(handshakeObject.transform, catA.HandScale, 0.25f));
-        }
-
-        private static Vector2 AngleToVector(float degrees)
-        {
-            float radians = degrees * Mathf.Deg2Rad;
-            return new Vector2(Mathf.Round(Mathf.Cos(radians)), Mathf.Round(Mathf.Sin(radians)));
-        }
-
-        /// <summary>The handshake picture without its arms: only the two clasped hands in the middle.</summary>
-        private Sprite GetClaspSprite()
-        {
-            if (claspSprite == null)
-            {
-                Rect source = handshakeSprite.textureRect;
-                float trim = Mathf.Clamp(claspTrimPixels, 0f, source.width * 0.4f);
-                var rect = new Rect(source.x + trim, source.y, source.width - trim * 2f, source.height);
-                claspSprite = Sprite.Create(handshakeSprite.texture, rect, new Vector2(0.5f, 0.5f), handshakeSprite.pixelsPerUnit);
-            }
-
-            return claspSprite;
         }
 
         private static IEnumerator PopRoutine(Transform target, Vector3 fullScale, float duration)

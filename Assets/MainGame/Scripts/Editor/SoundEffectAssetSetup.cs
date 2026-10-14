@@ -6,8 +6,9 @@ namespace Catshakes
 {
     /// <summary>
     /// Creates the sound and effect assets of the game inside Assets/MainGame:
-    ///  - Sounds/Move.wav, Push.wav, Win.wav, Lose.wav (placeholder sounds; replace them with your own files)
-    ///  - Resources/SoundManager.prefab (loaded at runtime, holds the four clips)
+    ///  - Sounds/Move.wav, Push.wav, Win.wav, Lose.wav, SwitchCat.wav, Cut.wav, Button.wav, Door.wav, Switch.wav
+    ///    (placeholder sounds; replace them with your own files)
+    ///  - Resources/SoundManager.prefab (loaded at runtime, holds the clips; empty clip fields are filled in)
     ///  - Effects/WinEffect.prefab with its ring sprite, dot texture and confetti material
     /// Existing files are kept, so running the menu again never overwrites sounds you replaced.
     /// </summary>
@@ -32,6 +33,7 @@ namespace Catshakes
             AudioClip lose = EnsureSound(SoundId.Lose);
 
             CreateSoundManagerPrefab(move, push, win, lose);
+            FillMissingClips();
             CreateWinEffectPrefab();
 
             AssetDatabase.SaveAssets();
@@ -108,6 +110,39 @@ namespace Catshakes
             Object.DestroyImmediate(managerObject);
         }
 
+        /// <summary>Assigns a clip (generating its wav when needed) to every empty sound field of the SoundManager prefab.</summary>
+        private static void FillMissingClips()
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SoundManagerPrefabPath);
+            SoundManager manager = prefab != null ? prefab.GetComponent<SoundManager>() : null;
+            if (manager == null)
+            {
+                return;
+            }
+
+            var serialized = new SerializedObject(manager);
+            var fields = new[]
+            {
+                ("switchCatClip", SoundId.SwitchCat),
+                ("cutClip", SoundId.Cut),
+                ("buttonClip", SoundId.Button),
+                ("doorClip", SoundId.Door),
+                ("switchClip", SoundId.Switch)
+            };
+
+            foreach ((string field, SoundId id) in fields)
+            {
+                SerializedProperty property = serialized.FindProperty(field);
+                if (property != null && property.objectReferenceValue == null)
+                {
+                    property.objectReferenceValue = EnsureSound(id);
+                }
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(prefab);
+        }
+
         // ---------------------------------------------------------------- effects
 
         private static void CreateWinEffectPrefab()
@@ -119,8 +154,8 @@ namespace Catshakes
 
             string textureFolder = EffectFolder + "/Textures";
             EnsureFolder(textureFolder);
-            Sprite ringSprite = EnsureSprite(textureFolder + "/WinRing.png", WinEffect.CreateRingTexture(), 128);
-            Sprite dotSprite = EnsureSprite(textureFolder + "/ConfettiDot.png", WinEffect.CreateDotTexture(), 32);
+            Sprite ringSprite = EnsureSprite(textureFolder + "/WinRing.png", WinEffect.CreateRingTexture());
+            Sprite dotSprite = EnsureSprite(textureFolder + "/ConfettiDot.png", WinEffect.CreateDotTexture());
 
             string materialPath = EffectFolder + "/Confetti.mat";
             Material material = AssetDatabase.LoadAssetAtPath<Material>(materialPath);
@@ -158,8 +193,10 @@ namespace Catshakes
             Object.DestroyImmediate(root);
         }
 
-        private static Sprite EnsureSprite(string path, Texture2D texture, int pixelsPerUnit)
+        /// <summary>Saves a pixel-art texture as a point-filtered sprite that is one unit wide.</summary>
+        private static Sprite EnsureSprite(string path, Texture2D texture)
         {
+            int pixelsPerUnit = texture.width;
             if (!File.Exists(path))
             {
                 File.WriteAllBytes(path, texture.EncodeToPNG());
@@ -170,6 +207,8 @@ namespace Catshakes
                 importer.spritePixelsPerUnit = pixelsPerUnit;
                 importer.alphaIsTransparency = true;
                 importer.mipmapEnabled = false;
+                importer.filterMode = FilterMode.Point;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
                 importer.SaveAndReimport();
             }
 

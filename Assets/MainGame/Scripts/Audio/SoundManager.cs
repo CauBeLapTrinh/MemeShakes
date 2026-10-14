@@ -10,18 +10,24 @@ namespace Catshakes
         Move,
         Push,
         Win,
-        Lose
+        Lose,
+        SwitchCat,
+        Cut,
+        Button,
+        Door,
+        Switch
     }
 
     /// <summary>
-    /// Plays the gameplay sound effects (move, push a crate, win, lose). It listens to every <see cref="GridManager"/>
-    /// by itself, so no wiring is needed: it is created automatically on first use and survives scene loads.
-    /// Volume follows the SFX slider of <see cref="AudioManager"/>.
+    /// Plays the background music and the sound effects (move, push, win, cut, switch cat, door, switch, buttons).
+    /// It listens to every <see cref="GridManager"/> by itself, so no wiring is needed: it is created automatically when
+    /// the game starts and survives scene loads. Music volume follows the Music slider of <see cref="AudioManager"/>,
+    /// effects follow the SFX slider.
     ///
-    /// The clips live in Assets/MainGame/Sounds (Move, Push, Win, Lose). They are assigned on the prefab
+    /// The clips live in Assets/MainGame/Sounds. They are assigned on the prefab
     /// Assets/MainGame/Resources/SoundManager.prefab, which is loaded automatically: replace the wav files (or the
-    /// clips on that prefab) to change the sounds. If the prefab or a clip is missing, a short synthesized placeholder is used.
-    /// "Lose" is played when a closing door cuts an arm; "Push" for a crate or the other cat.
+    /// clips on that prefab) to change the sounds. If the prefab or an effect clip is missing, a short synthesized
+    /// placeholder is used. "Cut" is played when a closing door cuts an arm; "Push" for a crate or the other cat.
     /// </summary>
     public sealed class SoundManager : MonoBehaviour
     {
@@ -33,11 +39,25 @@ namespace Catshakes
         [SerializeField] private AudioClip pushClip;
         [SerializeField] private AudioClip winClip;
         [SerializeField] private AudioClip loseClip;
+        [SerializeField] private AudioClip switchCatClip;
+        [SerializeField] private AudioClip cutClip;
+        [SerializeField] private AudioClip buttonClip;
+        [SerializeField] private AudioClip doorClip;
+        [SerializeField] private AudioClip switchClip;
+
+        [Header("Music")]
+        [SerializeField] private AudioSource musicSource;
+        [Tooltip("Background music, looped in every scene.")]
+        [SerializeField] private AudioClip musicClip;
+        [Tooltip("Music volume relative to the Music slider, so the loop stays in the background.")]
+        [SerializeField, Range(0f, 1f)] private float musicVolumeScale = 0.6f;
 
         private static readonly HashSet<GridManager> BoundGrids = new HashSet<GridManager>();
 
         private bool isAutoCreated;
         private int lastPriorityFrame = -1;
+        private int lastDoorFrame = -1;
+        private int lastSwitchFrame = -1;
 
         public static SoundManager Instance { get; private set; }
 
@@ -46,6 +66,13 @@ namespace Catshakes
         {
             Instance = null;
             BoundGrids.Clear();
+        }
+
+        // Created as soon as the first scene is loaded, so the music plays from the start.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        private static void CreateOnStart()
+        {
+            EnsureInstance();
         }
 
         /// <summary>Plays a sound, creating the manager when none exists yet.</summary>
@@ -129,6 +156,20 @@ namespace Catshakes
             sfxSource.playOnAwake = false;
             sfxSource.loop = false;
 
+            if (musicSource == null || musicSource == sfxSource)
+            {
+                musicSource = gameObject.AddComponent<AudioSource>();
+            }
+
+            musicSource.playOnAwake = false;
+            musicSource.loop = true;
+            musicSource.volume = AudioManager.MusicVolume * musicVolumeScale;
+            if (musicClip != null)
+            {
+                musicSource.clip = musicClip;
+                musicSource.Play();
+            }
+
             BuildPlaceholderClips();
 
             foreach (GridManager grid in BoundGrids)
@@ -137,6 +178,14 @@ namespace Catshakes
                 {
                     Subscribe(grid);
                 }
+            }
+        }
+
+        private void Update()
+        {
+            if (musicSource != null)
+            {
+                musicSource.volume = AudioManager.MusicVolume * musicVolumeScale;
             }
         }
 
@@ -157,6 +206,9 @@ namespace Catshakes
             grid.MoveResolved += HandleMoveResolved;
             grid.ArmCut += HandleArmCut;
             grid.Won += HandleWon;
+            grid.CatSwitched += HandleCatSwitched;
+            grid.DoorChanged += HandleDoorChanged;
+            grid.SwitchChanged += HandleSwitchChanged;
         }
 
         private void Unsubscribe(GridManager grid)
@@ -164,6 +216,9 @@ namespace Catshakes
             grid.MoveResolved -= HandleMoveResolved;
             grid.ArmCut -= HandleArmCut;
             grid.Won -= HandleWon;
+            grid.CatSwitched -= HandleCatSwitched;
+            grid.DoorChanged -= HandleDoorChanged;
+            grid.SwitchChanged -= HandleSwitchChanged;
         }
 
         private void UnsubscribeAll()
@@ -201,7 +256,31 @@ namespace Catshakes
         private void HandleArmCut(CatId cat)
         {
             lastPriorityFrame = Time.frameCount;
-            PlayInternal(SoundId.Lose);
+            PlayInternal(SoundId.Cut);
+        }
+
+        private void HandleCatSwitched(CatId cat)
+        {
+            PlayInternal(SoundId.SwitchCat);
+        }
+
+        // Several doors can move in one step; one sound per frame is enough.
+        private void HandleDoorChanged(Vector2Int cell, bool open)
+        {
+            if (lastDoorFrame != Time.frameCount)
+            {
+                lastDoorFrame = Time.frameCount;
+                PlayInternal(SoundId.Door);
+            }
+        }
+
+        private void HandleSwitchChanged(Vector2Int cell, bool active)
+        {
+            if (lastSwitchFrame != Time.frameCount)
+            {
+                lastSwitchFrame = Time.frameCount;
+                PlayInternal(SoundId.Switch);
+            }
         }
 
         private void HandleWon()
@@ -229,6 +308,11 @@ namespace Catshakes
                 case SoundId.Push: return pushClip;
                 case SoundId.Win: return winClip;
                 case SoundId.Lose: return loseClip;
+                case SoundId.SwitchCat: return switchCatClip;
+                case SoundId.Cut: return cutClip;
+                case SoundId.Button: return buttonClip;
+                case SoundId.Door: return doorClip;
+                case SoundId.Switch: return switchClip;
                 default: return null;
             }
         }
@@ -241,6 +325,11 @@ namespace Catshakes
             if (pushClip == null) pushClip = CreatePlaceholderClip(SoundId.Push);
             if (winClip == null) winClip = CreatePlaceholderClip(SoundId.Win);
             if (loseClip == null) loseClip = CreatePlaceholderClip(SoundId.Lose);
+            if (switchCatClip == null) switchCatClip = CreatePlaceholderClip(SoundId.SwitchCat);
+            if (cutClip == null) cutClip = CreatePlaceholderClip(SoundId.Cut);
+            if (buttonClip == null) buttonClip = CreatePlaceholderClip(SoundId.Button);
+            if (doorClip == null) doorClip = CreatePlaceholderClip(SoundId.Door);
+            if (switchClip == null) switchClip = CreatePlaceholderClip(SoundId.Switch);
         }
 
         /// <summary>
@@ -284,6 +373,54 @@ namespace Catshakes
                         return 0.3f * envelope * tone;
                     });
                 }
+
+                case SoundId.SwitchCat:
+                    // Two quick square-wave notes going up, like a chiptune "swap".
+                    return CreateClip("SwitchCat", 0.16f, t =>
+                    {
+                        float frequency = t < 0.07f ? 660f : 990f;
+                        float local = t < 0.07f ? t : t - 0.07f;
+                        float envelope = Mathf.Min(local / 0.003f, 1f) * Mathf.Exp(-local * 22f);
+                        return 0.18f * envelope * Mathf.Sign(Mathf.Sin(2f * Mathf.PI * frequency * t));
+                    });
+
+                case SoundId.Cut:
+                    // Metallic "shing" (falling noisy sweep) followed by a dull chop.
+                    return CreateClip("Cut", 0.32f, t =>
+                    {
+                        float swish = (UnityEngine.Random.value * 2f - 1f) * Mathf.Exp(-t * 18f) * Mathf.Min(t / 0.01f, 1f);
+                        float ring = Tone(t, 2400f, 1500f, 0.32f) * Mathf.Exp(-t * 14f);
+                        float chopTime = Mathf.Max(0f, t - 0.06f);
+                        float chop = t < 0.06f ? 0f : Tone(chopTime, 160f, 60f, 0.26f) * Mathf.Exp(-chopTime * 20f);
+                        return 0.22f * swish + 0.18f * ring + 0.5f * chop;
+                    });
+
+                case SoundId.Button:
+                    // Soft click.
+                    return CreateClip("Button", 0.06f, t =>
+                    {
+                        float envelope = Mathf.Min(t / 0.002f, 1f) * Mathf.Exp(-t * 60f);
+                        return 0.3f * envelope * Tone(t, 1200f, 800f, 0.06f);
+                    });
+
+                case SoundId.Door:
+                    // Low rumble of a heavy door sliding.
+                    return CreateClip("Door", 0.28f, t =>
+                    {
+                        float envelope = Mathf.Min(t / 0.02f, 1f) * Mathf.Exp(-t * 9f);
+                        float noise = UnityEngine.Random.value * 2f - 1f;
+                        float rumble = Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 70f * t));
+                        return envelope * (0.15f * rumble + 0.12f * noise);
+                    });
+
+                case SoundId.Switch:
+                    // Short mechanical click with a tiny tone.
+                    return CreateClip("Switch", 0.1f, t =>
+                    {
+                        float envelope = Mathf.Min(t / 0.002f, 1f) * Mathf.Exp(-t * 45f);
+                        float noise = UnityEngine.Random.value * 2f - 1f;
+                        return envelope * (0.2f * noise + 0.2f * Mathf.Sin(2f * Mathf.PI * 1500f * t));
+                    });
 
                 default:
                     // Falling buzzy tone.
