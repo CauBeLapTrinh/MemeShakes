@@ -59,7 +59,12 @@ namespace Catshakes
         [Tooltip("Legend: # wall | . empty | P cat A | Q cat B | O barrel | 1-9 Switch_1 (momentary, linkId = digit) | a-i Switch_2 (toggle, a=1..i=9) | A-I door (A=1..I=9). The first text line is the TOP row. Optional last line '@A=R B=L' sets the facing (U/D/L/R) of each cat.")]
         [SerializeField, TextArea(6, 20)] private string asciiLayout = string.Empty;
 
+        [Header("Solution (written by the Level Editor solver, e.g. \"A:RRU B:LL\")")]
+        [Tooltip("Shortest known solution: moves grouped per cat, U/D/L/R. Cleared whenever the level is edited in the Level Editor.")]
+        [SerializeField, TextArea(2, 6)] private string solutionText = string.Empty;
+
         public string DisplayName => displayName;
+        public string SolutionText => solutionText;
         public int Width => width;
         public int Height => height;
         public Vector2Int CatAStart => catAStart;

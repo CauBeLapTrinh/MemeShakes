@@ -22,7 +22,7 @@ namespace Catshakes.EditorTools
     ///
     /// All edits go through SerializedObject, so Undo/Redo (Ctrl+Z) works and the asset is marked dirty.
     /// </summary>
-    public sealed class LevelEditorWindow : EditorWindow
+    public sealed partial class LevelEditorWindow : EditorWindow
     {
         private enum PaintTool
         {
@@ -48,6 +48,11 @@ namespace Catshakes.EditorTools
 
         private static readonly Vector2Int NoCell = new Vector2Int(-1, -1);
 
+        private const int TabEdit = 0;
+        private const int TabSolveGenerate = 1;
+        private static readonly string[] TabLabels = { "Edit level", "Solve + Generate" };
+
+        [SerializeField] private int mainTab = TabEdit;
         [SerializeField] private LevelDataSO level;
         [SerializeField] private PaintTool tool = PaintTool.Wall;
         [SerializeField] private int linkId = 1;
@@ -208,8 +213,18 @@ namespace Catshakes.EditorTools
             DrawSidebar();
             EditorGUILayout.BeginVertical();
 
+            int pickedTab = GUILayout.Toolbar(mainTab, TabLabels, GUILayout.Height(24f));
+            if (pickedTab != mainTab)
+            {
+                Defer(() => SetTab(pickedTab));
+            }
+
             mainScroll = EditorGUILayout.BeginScrollView(mainScroll);
-            if (level == null || so == null)
+            if (mainTab == TabSolveGenerate)
+            {
+                DrawSolveGenerateTab();
+            }
+            else if (level == null || so == null)
             {
                 EditorGUILayout.Space(8f);
                 EditorGUILayout.HelpBox("Pick a level on the left, or press New to create one.", MessageType.Info);
@@ -1728,6 +1743,7 @@ namespace Catshakes.EditorTools
             hoverCell = NoCell;
             lastPaintCell = NoCell;
             validationDirty = true;
+            ClearSolverResult();
             SetStatus(string.Empty, MessageType.None);
             Repaint();
         }
@@ -1737,9 +1753,13 @@ namespace Catshakes.EditorTools
         {
             string ascii = BuildAscii();
             so.FindProperty("asciiLayout").stringValue = ascii;
+
+            // The stored solution no longer matches the edited level.
+            so.FindProperty("solutionText").stringValue = string.Empty;
             so.ApplyModifiedProperties();
             asciiText = ascii;
             validationDirty = true;
+            ClearSolverResult();
             Repaint();
         }
 
@@ -1749,6 +1769,7 @@ namespace Catshakes.EditorTools
             isValid = level.Validate(out text);
             report = text ?? string.Empty;
             validationDirty = false;
+            AfterValidation();
         }
 
         private void RebuildList()

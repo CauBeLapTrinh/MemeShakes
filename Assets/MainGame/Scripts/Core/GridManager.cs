@@ -15,8 +15,8 @@ namespace Catshakes
     ///    except the cell of the other cat's extended hand, which is the winning handshake.
     ///  - A barrel in the target cell is pushed one cell further if that cell is free.
     ///  - The other cat's body is pushed one cell too (together with its whole arm) if every cell it would move to is free.
-    ///  - Switch_1 (momentary) is active while a barrel or an arm segment lies on it.
-    ///  - Switch_2 (toggle) flips each time an arm or barrel enters its cell.
+    ///  - Switch_1 (momentary) is active while a barrel, severed hand or a hand tip lies on it. Arm segments do not count.
+    ///  - Switch_2 (toggle) flips each time a hand or barrel enters its cell. Arm segments do not count.
     ///  - A hand starts one cell in front of its cat (the facing stored in the level), never on the body.
     ///  - A door is open while any linked switch is active (a door that starts open: while none is), and also while
     ///    a barrel, severed hand, hand tip or the start cell of an arm is in its doorway.
@@ -38,6 +38,8 @@ namespace Catshakes
         [SerializeField] private Barrel barrelPrefab;
         [Tooltip("Optional. Prefab of the severed hand (a Barrel component). When empty, the barrel prefab is used with the cat's hand sprite.")]
         [SerializeField] private Barrel severedHandPrefab;
+        [Tooltip("Scale of a severed hand relative to the normal hand, so it reads as an obstacle like a crate.")]
+        [SerializeField, Min(0.1f)] private float severedHandScale = 1.3f;
         [SerializeField] private SwitchEntity momentarySwitchPrefab;
         [SerializeField] private SwitchEntity toggleSwitchPrefab;
         [SerializeField] private DoorEntity doorPrefab;
@@ -521,14 +523,12 @@ namespace Catshakes
             var oldCells = new HashSet<Vector2Int>(cat.ArmPath);
             cat.ShiftBy(direction);
 
-            // Arm cells that moved onto a toggle switch flip it, like an arm entering that cell.
-            IReadOnlyList<Vector2Int> path = cat.ArmPath;
-            for (int i = 0; i < path.Count; i++)
+            // A hand that was shoved onto a toggle switch flips it, like a hand entering that cell.
+            // Other arm cells that slide over a switch do not count.
+            Vector2Int hand = cat.HandPosition;
+            if (!oldCells.Contains(hand))
             {
-                if (!oldCells.Contains(path[i]))
-                {
-                    FlipToggleAt(path[i]);
-                }
+                FlipToggleAt(hand);
             }
         }
 
@@ -671,9 +671,10 @@ namespace Catshakes
             }
         }
 
+        /// <summary>A momentary switch is pressed by a barrel / severed hand or by a hand tip. Arm segments passing over it do not count.</summary>
         private bool IsCellPressed(Vector2Int cell)
         {
-            return barrelsByCell.ContainsKey(cell) || catA.ArmContains(cell) || catB.ArmContains(cell);
+            return barrelsByCell.ContainsKey(cell) || catA.HandPosition == cell || catB.HandPosition == cell;
         }
 
         /// <summary>
@@ -745,7 +746,7 @@ namespace Catshakes
             Vector2Int cell = cat.HandPosition;
             Barrel hand = Instantiate(prefab, levelRoot);
             hand.Initialize(coords, cell);
-            hand.SetVisual(hasDedicatedPrefab ? null : cat.HandSprite, cat.HandAngle, cat.HandScale);
+            hand.SetVisual(hasDedicatedPrefab ? null : cat.HandSprite, cat.HandAngle, cat.HandScale * severedHandScale);
             hand.PlayAppear(0.2f);
 
             severedHands.Add(hand);
