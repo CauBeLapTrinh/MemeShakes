@@ -18,8 +18,8 @@ namespace Catshakes
     ///  - Switch_1 (momentary) is active while a barrel or an arm segment lies on it.
     ///  - Switch_2 (toggle) flips each time an arm or barrel enters its cell.
     ///  - A hand starts one cell in front of its cat (the facing stored in the level), never on the body.
-    ///  - A door is open while any linked switch is active, and also while a barrel, severed hand, hand tip or
-    ///    the start cell of an arm is in its doorway.
+    ///  - A door is open while any linked switch is active (a door that starts open: while none is), and also while
+    ///    a barrel, severed hand, hand tip or the start cell of an arm is in its doorway.
     ///  - When a door closes while an arm passes through it, the arm is cut: the part from the door on is removed,
     ///    the arm ends just in front of the door, and the old hand stays behind as a severed hand that acts like a barrel.
     /// </summary>
@@ -653,7 +653,7 @@ namespace Catshakes
             for (int i = 0; i < doors.Count; i++)
             {
                 DoorEntity door = doors[i];
-                bool shouldBeOpen = IsLinkActive(door.LinkId) || IsDoorwayOccupied(door.GridPosition);
+                bool shouldBeOpen = IsLinkActive(door.LinkId) != door.StartsOpen || IsDoorwayOccupied(door.GridPosition);
                 bool wasOpen = door.IsOpen;
                 door.SetOpen(shouldBeOpen);
                 if (door.IsOpen != wasOpen && !interactiveEventsMuted)

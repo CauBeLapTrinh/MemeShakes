@@ -17,7 +17,10 @@ namespace Catshakes
         /// <summary>Switch_2 - toggle: flips on/off each time something steps onto it.</summary>
         SwitchToggle = 4,
 
-        /// <summary>Door linked to switches by linkId; closed unless a linked switch is active.</summary>
+        /// <summary>
+        /// Door linked to switches by linkId; closed unless a linked switch is active. With initiallyOn it is the
+        /// other way round: open unless a linked switch is active.
+        /// </summary>
         Door = 5
     }
 }

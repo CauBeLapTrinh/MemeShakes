@@ -6,8 +6,9 @@ using UnityEngine.UI;
 namespace Catshakes
 {
     /// <summary>
-    /// In-game overlay: level name, move counter, Speedrun timer, remaining steps, undo / reset / switch-cat buttons
-    /// and the win panel. Every reference is optional so the HUD can be built up step by step.
+    /// In-game overlay: level number, Speedrun timer, restart and settings buttons (the shared Settings popup with a
+    /// "Give up" button back to level select) and the win panel. Every reference is optional, so the move counter,
+    /// remaining steps and undo / switch-cat buttons can be left out (the current layout does).
     /// </summary>
     public sealed class GameplayHUD : MonoBehaviour
     {
@@ -42,7 +43,8 @@ namespace Catshakes
         [SerializeField] private string movesFormat = "Moves: {0}";
         [SerializeField] private string stepsFormat = "{0}/{1}";
         [SerializeField] private string activeCatFormat = "Controlling: {0}";
-        [SerializeField] private string speedrunLevelFormat = "{0}  ({1}/{2})";
+        [Tooltip("Next to the \"Level\" picture. {0} = level number (the same as on the level select buttons).")]
+        [SerializeField] private string levelNumberFormat = "{0}";
         [SerializeField] private string catAName = "Cat A";
         [SerializeField] private string catBName = "Cat B";
         [SerializeField] private string winTitle = "Handshake!";
@@ -169,12 +171,11 @@ namespace Catshakes
                 return;
             }
 
-            string levelName = gridManager.CurrentLevel.DisplayName;
+            // The level number as on the level select buttons; the level's own name when the scene runs on its own.
             GameSceneManager manager = GameSceneManager.Instance;
-
-            levelNameText.text = manager != null && manager.IsSpeedrunActive
-                ? string.Format(speedrunLevelFormat, levelName, manager.CurrentLevelIndex + 1, manager.LevelCount)
-                : levelName;
+            levelNameText.text = manager != null
+                ? string.Format(levelNumberFormat, manager.CurrentLevelIndex)
+                : gridManager.CurrentLevel.DisplayName;
         }
 
         private void RefreshStepTexts()
@@ -326,7 +327,7 @@ namespace Catshakes
             PersistentPopups popups = PersistentPopups.Instance;
             if (popups != null)
             {
-                popups.OpenSettings();
+                popups.OpenSettings(HandleGiveUpClicked);
             }
         }
 
@@ -347,6 +348,7 @@ namespace Catshakes
 
             HideWinPanel();
             SoundManager.Play(SoundId.Reset);
+            GameAnalytics.LevelRestart(manager != null ? manager.CurrentLevelIndex : -1, gridManager.MoveCount);
             gridManager.ResetLevel();
         }
 
@@ -362,6 +364,13 @@ namespace Catshakes
             {
                 manager.ReturnToLevelSelect();
             }
+        }
+
+        private void HandleGiveUpClicked()
+        {
+            GameSceneManager manager = GameSceneManager.Instance;
+            GameAnalytics.GiveUp(manager != null ? manager.CurrentLevelIndex : -1, manager != null && manager.IsSpeedrunActive);
+            HandleMenuClicked();
         }
 
         private void HandleNextLevelClicked()

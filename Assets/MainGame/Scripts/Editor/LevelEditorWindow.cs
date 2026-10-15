@@ -52,6 +52,7 @@ namespace Catshakes.EditorTools
         [SerializeField] private PaintTool tool = PaintTool.Wall;
         [SerializeField] private int linkId = 1;
         [SerializeField] private bool toggleStartsOn;
+        [SerializeField] private bool doorStartsOpen;
         [SerializeField] private float cellSize = 52f;
         [SerializeField] private string asciiText = string.Empty;
         [SerializeField] private bool showAscii = true;
@@ -343,6 +344,11 @@ namespace Catshakes.EditorTools
                 toggleStartsOn = EditorGUILayout.ToggleLeft("Starts ON", toggleStartsOn, GUILayout.Width(90f));
             }
 
+            using (new EditorGUI.DisabledScope(tool != PaintTool.Door))
+            {
+                doorStartsOpen = EditorGUILayout.ToggleLeft(new GUIContent("Starts open", "The door is open at the start; a linked switch closes it."), doorStartsOpen, GUILayout.Width(100f));
+            }
+
             EditorGUILayout.EndHorizontal();
 
             DrawFacingRow("Cat A facing", "catAFacing", CatId.CatA);
@@ -395,7 +401,7 @@ namespace Catshakes.EditorTools
 
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.LabelField(
-                    "# wall  . empty  P cat A  Q cat B  O barrel  1-9 switch(hold)  a-i switch(toggle)  A-I door.  (ASCII cannot store 'Starts ON'.)",
+                    "# wall  . empty  P cat A  Q cat B  O barrel  1-9 switch(hold)  a-i switch(toggle)  A-I door.  (ASCII cannot store 'Starts ON' or 'Starts open'.)",
                     EditorStyles.miniLabel);
             }
 
@@ -576,9 +582,10 @@ namespace Catshakes.EditorTools
                     text = "T" + data.linkId + (data.initiallyOn ? "*" : string.Empty);
                     return true;
                 case TileType.Door:
-                    color = linkColor * 0.8f;
+                    // A door that starts open is drawn lighter.
+                    color = data.initiallyOn ? Color.Lerp(linkColor, Color.white, 0.45f) : linkColor * 0.8f;
                     color.a = 1f;
-                    text = "D" + data.linkId;
+                    text = "D" + data.linkId + (data.initiallyOn ? "o" : string.Empty);
                     return true;
                 default:
                     color = default(Color);
@@ -622,7 +629,14 @@ namespace Catshakes.EditorTools
                 linkId = Mathf.Clamp(data.linkId, 1, 9);
             }
 
-            toggleStartsOn = data.initiallyOn;
+            if (data.tileType == TileType.Door)
+            {
+                doorStartsOpen = data.initiallyOn;
+            }
+            else
+            {
+                toggleStartsOn = data.initiallyOn;
+            }
         }
 
         // ----------------------------------------------------------------------------------------------------
@@ -714,7 +728,7 @@ namespace Catshakes.EditorTools
                     TileType type = ToTileType(paintTool);
                     bool usesLink = type == TileType.SwitchMomentary || type == TileType.SwitchToggle || type == TileType.Door;
                     int link = usesLink ? linkId : 0;
-                    bool on = type == TileType.SwitchToggle && toggleStartsOn;
+                    bool on = (type == TileType.SwitchToggle && toggleStartsOn) || (type == TileType.Door && doorStartsOpen);
 
                     SerializedProperty element;
                     if (index >= 0)
@@ -1790,6 +1804,11 @@ namespace Catshakes.EditorTools
                     if (o.tileType == TileType.SwitchToggle && o.initiallyOn)
                     {
                         text += ", starts ON";
+                    }
+
+                    if (o.tileType == TileType.Door && o.initiallyOn)
+                    {
+                        text += ", starts open";
                     }
 
                     return text;

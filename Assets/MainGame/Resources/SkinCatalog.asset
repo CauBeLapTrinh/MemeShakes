@@ -31,7 +31,7 @@ MonoBehaviour:
     adsRequired: 2
     body: {fileID: 21300000, guid: 71ee56212ad59ff489c5eecc851e5721, type: 3}
     bodyNoArm: {fileID: 0}
-    hand: {fileID: 21300000, guid: d5fc7024e19bec648b6a3d8cf84a3d2b, type: 3}
+    hand: {fileID: -1285878233683687041, guid: d5fc7024e19bec648b6a3d8cf84a3d2b, type: 3}
     straightArm: {fileID: 21300000, guid: 3a30dbeedf042134bb8d82bbbef8435d, type: 3}
     elbowArm: {fileID: 21300000, guid: 39f5409c0ebb70648a05a240f698c5ec, type: 3}
     handshake: {fileID: 21300000, guid: 577aaed55b588d245964ec6d0d427c89, type: 3}
@@ -42,7 +42,7 @@ MonoBehaviour:
     adsRequired: 5
     body: {fileID: 21300000, guid: c5d84ca213c086542a23e1e317dc1a7b, type: 3}
     bodyNoArm: {fileID: 0}
-    hand: {fileID: 21300000, guid: 8afae02f1fc059244ab90bfccd90491b, type: 3}
+    hand: {fileID: -5155111816251428248, guid: 8afae02f1fc059244ab90bfccd90491b, type: 3}
     straightArm: {fileID: 21300000, guid: 74e87fb35269cd84891878426f8ce56f, type: 3}
     elbowArm: {fileID: 21300000, guid: 17964ece77e5f2e4aa0f6eaf120b3395, type: 3}
     handshake: {fileID: 21300000, guid: 4efa80bd525e6e245b994be8043f3a40, type: 3}
@@ -53,7 +53,7 @@ MonoBehaviour:
     adsRequired: 10
     body: {fileID: 21300000, guid: 116049697f2c330419c0c0688d11e21d, type: 3}
     bodyNoArm: {fileID: 0}
-    hand: {fileID: 21300000, guid: 681773045cb4eca46aa77097fbcc2354, type: 3}
+    hand: {fileID: 2382747254249673765, guid: 681773045cb4eca46aa77097fbcc2354, type: 3}
     straightArm: {fileID: 21300000, guid: 919dc43d25b952242a4cbf1c8afb4c15, type: 3}
     elbowArm: {fileID: 21300000, guid: 609c9cc5efe446e4f8afed3390a79f56, type: 3}
     handshake: {fileID: 21300000, guid: 97b6a9f5edea44448a439c84941b3e1a, type: 3}
@@ -64,7 +64,7 @@ MonoBehaviour:
     adsRequired: 15
     body: {fileID: 21300000, guid: 22dbce6d16858364ca8dc798820a6dac, type: 3}
     bodyNoArm: {fileID: 0}
-    hand: {fileID: 21300000, guid: f66d85f1d6a9f774399d63420f0b3a82, type: 3}
+    hand: {fileID: 4673692693477059730, guid: f66d85f1d6a9f774399d63420f0b3a82, type: 3}
     straightArm: {fileID: 21300000, guid: b52f4a9d73e289a4182827bc9d20f7b2, type: 3}
     elbowArm: {fileID: 21300000, guid: 5c68167bf7cb0a8459dda45566cdc449, type: 3}
     handshake: {fileID: 21300000, guid: 55365286e7080b942880a69a93af584a, type: 3}
@@ -75,7 +75,7 @@ MonoBehaviour:
     adsRequired: 20
     body: {fileID: 21300000, guid: 0eb629d1bf3d44c449cb5aa1177b5e14, type: 3}
     bodyNoArm: {fileID: 0}
-    hand: {fileID: 21300000, guid: 3a0a6e2d2944595479a4c8b2b68e501a, type: 3}
+    hand: {fileID: 3635733875445251569, guid: 3a0a6e2d2944595479a4c8b2b68e501a, type: 3}
     straightArm: {fileID: 21300000, guid: 777df18c19306d44d9ce2da171042c04, type: 3}
     elbowArm: {fileID: 21300000, guid: ad8fd9e8e3070f546ad107fc87fd7bca, type: 3}
     handshake: {fileID: 21300000, guid: b7415498226a86940a23210d1a6c1b43, type: 3}

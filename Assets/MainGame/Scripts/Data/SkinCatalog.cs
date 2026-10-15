@@ -98,6 +98,7 @@ namespace Catshakes
 
             int watched = AdsWatched(skin) + 1;
             PlayerPrefs.SetInt(AdsWatchedKeyPrefix + skin.id, watched);
+            GameAnalytics.SkinAdProgress(skin.id, watched, skin.adsRequired);
             if (watched >= skin.adsRequired)
             {
                 Unlock(skin);
@@ -118,6 +119,7 @@ namespace Catshakes
 
             PlayerPrefs.SetInt(OwnedKeyPrefix + skin.id, 1);
             PlayerPrefs.Save();
+            GameAnalytics.SkinUnlocked(skin.id);
             Changed?.Invoke();
         }
 
@@ -158,6 +160,7 @@ namespace Catshakes
 
             PlayerPrefs.SetString(SelectedKey, skin.id);
             PlayerPrefs.Save();
+            GameAnalytics.SkinSelected(skin.id);
             Changed?.Invoke();
         }
 

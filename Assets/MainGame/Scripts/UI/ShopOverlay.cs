@@ -12,7 +12,7 @@ namespace Catshakes
     /// <summary>
     /// Mr. Da's shop, opened from the shop button of the main menu. The shelf shows one skin per slot: a tap on an owned
     /// skin puts it on, a tap on a locked skin opens the "Watch ads to unlock" popup. A locked skin needs several ads; its
-    /// plate shows the progress ("1 / 2"). Ads are not integrated yet; see <see cref="RewardedAds"/>.
+    /// plate shows the progress ("1 / 2"). Ads come from <see cref="RewardedAds"/> (LevelPlay via SkinAdRewardManager).
     /// Built and wired by Catshakes/Add Shop And Leaderboard UI.
     /// </summary>
     public sealed class ShopOverlay : MonoBehaviour
@@ -46,8 +46,11 @@ namespace Catshakes
         [Tooltip("Floats up from a skin when it gets unlocked.")]
         [SerializeField] private string unlockedText = "UNLOCKED!";
         [SerializeField] private string progressLabelFormat = "{0} / {1}";
-        [Tooltip("The progress text is moved right by this much to make room for the ad icon.")]
-        [SerializeField] private float progressLabelOffset = 14f;
+        [Tooltip("Floats up from the Watch ads button when no ad is loaded yet.")]
+        [SerializeField] private string adNotReadyText = "No ad yet, try again!";
+        [SerializeField] private string noInternetText = "No internet connection!";
+        [Tooltip("Space between the ad icon and the progress text; the text is centered in what is left of the plate.")]
+        [SerializeField] private float progressLabelGap = 2f;
 
         [Header("Watch ads popup")]
         [SerializeField] private CanvasGroup popupGroup;
@@ -177,8 +180,9 @@ namespace Catshakes
                     if (hasSkin)
                     {
                         slot.label.text = owned ? ownedLabel : string.Format(progressLabelFormat, catalog.AdsWatched(skin), skin.adsRequired);
-                        slot.label.rectTransform.anchoredPosition = new Vector2(owned ? 0f : progressLabelOffset, slot.label.rectTransform.anchoredPosition.y);
                     }
+
+                    LayoutLabel(slot, hasSkin && !owned);
                 }
 
                 if (slot.highlight != null)
@@ -191,6 +195,26 @@ namespace Catshakes
                     slot.button.interactable = hasSkin;
                 }
             }
+        }
+
+        /// <summary>
+        /// Stretches the label over the plate: the whole plate (centered) for "Owner", or only the part right of
+        /// the ad icon for the progress, so the icon and the text never overlap.
+        /// </summary>
+        private void LayoutLabel(Slot slot, bool showsAdIcon)
+        {
+            RectTransform label = slot.label.rectTransform;
+            RectTransform plate = label.parent as RectTransform;
+            float left = 0f;
+            if (showsAdIcon && plate != null && slot.adBadge != null && slot.adBadge.transform is RectTransform ad && ad.parent == plate)
+            {
+                left = Mathf.Max(0f, ad.localPosition.x + ad.rect.xMax - plate.rect.xMin + progressLabelGap);
+            }
+
+            label.anchorMin = new Vector2(0f, label.anchorMin.y);
+            label.anchorMax = new Vector2(1f, label.anchorMax.y);
+            label.offsetMin = new Vector2(left, label.offsetMin.y);
+            label.offsetMax = new Vector2(0f, label.offsetMax.y);
         }
 
         private void OnSlotClicked(int index)
@@ -237,6 +261,12 @@ namespace Catshakes
 
             Click();
             SkinCatalog.Skin skin = pendingSkin;
+            if (!RewardedAds.IsReady && watchAdsButton != null)
+            {
+                // Show() starts loading one; the player can tap again in a moment.
+                UIFx.FloatingText((RectTransform)watchAdsButton.transform, RewardedAds.HasInternet ? adNotReadyText : noInternetText, UIFx.TextColor);
+            }
+
             RewardedAds.Show("shop_skin_" + skin.id, rewarded =>
             {
                 if (!rewarded)
@@ -244,24 +274,18 @@ namespace Catshakes
                     return;
                 }
 
+                int index = IndexOf(skin);
                 if (!catalog.AddWatchedAd(skin))
                 {
-                    // One more ad counted: a coin and the progress popping out of the button.
-                    SoundManager.Play(SoundId.AdReward);
-                    if (watchAdsButton != null)
-                    {
-                        var buttonRect = (RectTransform)watchAdsButton.transform;
-                        UIFx.FloatingText(buttonRect, string.Format(progressLabelFormat, catalog.AdsWatched(skin), skin.adsRequired), UIFx.TextColor);
-                        UIFx.Burst(buttonRect, UIFx.GoldColors, 8, 320f);
-                    }
-
+                    // One more ad counted: the popup closes and the skin's plate (ad icon + "1 / 2") bounces with the
+                    // new progress floating up from the slot.
+                    string progress = string.Format(progressLabelFormat, catalog.AdsWatched(skin), skin.adsRequired);
+                    HidePopup(false, () => CelebrateSlot(index, SoundId.AdReward, UIFx.GoldColors, 12, progress));
                     return;
                 }
 
                 catalog.Select(skin);
-                HidePopup(false);
-                int index = IndexOf(skin);
-                CelebrateSlot(index, SoundId.Unlock, UIFx.GoldColors, 26, unlockedText);
+                HidePopup(false, () => CelebrateSlot(index, SoundId.Unlock, UIFx.GoldColors, 26, unlockedText));
             });
         }
 
@@ -274,10 +298,12 @@ namespace Catshakes
             }
         }
 
-        private void HidePopup(bool playSound)
+        /// <summary>Fades the popup out; <paramref name="onHidden"/> runs once it is gone (right away if it cannot close now).</summary>
+        private void HidePopup(bool playSound, Action onHidden = null)
         {
             if (!IsPopupOpen || isAnimating)
             {
+                onHidden?.Invoke();
                 return;
             }
 
@@ -287,7 +313,11 @@ namespace Catshakes
             }
 
             pendingSkin = null;
-            StartCoroutine(FadeRoutine(popupGroup, popupBox, false, () => IsPopupOpen = false));
+            StartCoroutine(FadeRoutine(popupGroup, popupBox, false, () =>
+            {
+                IsPopupOpen = false;
+                onHidden?.Invoke();
+            }));
         }
 
         /// <summary>Sound, pixel burst and a bounce of the slot's plate and frame (plus an optional floating label).</summary>
@@ -314,7 +344,7 @@ namespace Catshakes
 
             if (!string.IsNullOrEmpty(text))
             {
-                UIFx.FloatingText(slotRect, text, UIFx.TextColor, 44f);
+                UIFx.FloatingText(slotRect, text, UIFx.TextColor, 51f);
             }
         }
 

@@ -453,8 +453,37 @@ namespace Catshakes.EditorTools
             SetRef(controller, "cameraFitter", fitter);
             SetRef(controller, "fallbackLevel", level);
 
+            BuildBackground(camera);
             BuildUi(art, grid);
             BuildEventSystem();
+        }
+
+        /// <summary>The scrolling purple pattern (BG 3) behind the board, on a canvas far behind every sprite.</summary>
+        private static void BuildBackground(Camera camera)
+        {
+            var canvasObject = new GameObject("[BACKGROUND]", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            var canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = camera;
+            canvas.planeDistance = 90f;
+            canvas.sortingOrder = -100;
+            var scaler = canvasObject.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 1f;
+
+            var background = new GameObject("BG_Purple", typeof(RectTransform), typeof(RawImage));
+            background.transform.SetParent(canvasObject.transform, false);
+            var rect = (RectTransform)background.transform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var image = background.GetComponent<RawImage>();
+            image.texture = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/MainGame/Sprites/Assetgame/BG 3.png");
+            image.raycastTarget = false;
+            background.AddComponent<DiagonalScrollingBackground>();
         }
 
         private static void BuildUi(Art art, GridManager grid)

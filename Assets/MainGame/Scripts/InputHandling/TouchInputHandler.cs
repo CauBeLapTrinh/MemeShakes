@@ -1,17 +1,21 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace Catshakes
 {
     /// <summary>
-    /// Turns touch (or mouse, for editor testing) gestures into hand moves for the selected cat.
+    /// Turns touch (or mouse, for editor testing) gestures into hand moves. Every finger is tracked on its own, so two
+    /// fingers can steer both cats at the same time (one finger per cat).
     ///
-    /// Hybrid scheme (default):
-    ///  - Touch that starts on a cat selects it and DRAGS its hand: the hand follows the finger one cell at a time,
-    ///    and dragging back over the arm retracts it.
-    ///  - Touch that starts anywhere else SWIPES: each swipe of at least the threshold moves the selected cat's
-    ///    hand one cell; keep dragging to chain more moves.
+    /// Hybrid scheme (default), per finger:
+    ///  - A touch that starts on a cat (its hand, arm or body) takes that cat and DRAGS its hand: the hand follows the
+    ///    finger one cell at a time, and dragging back over the arm retracts it.
+    ///  - A touch that starts anywhere else SWIPES: each swipe of at least the threshold moves a hand one cell; keep
+    ///    dragging to chain more moves. It steers the selected cat, or the other cat while a finger already holds the
+    ///    selected one.
     ///  - A short tap on a cell next to the selected hand moves the hand there (tapping the cell behind it retracts).
+    /// A cat is steered by one finger at a time; a second finger on a cat that is already held is ignored.
     /// Uses the Input System package when it is enabled, and the legacy Input class otherwise.
     /// </summary>
     public sealed class TouchInputHandler : MonoBehaviour
@@ -41,6 +45,21 @@ namespace Catshakes
             }
         }
 
+        /// <summary>One finger (or the mouse) from press to release.</summary>
+        private sealed class Gesture
+        {
+            public CatId Cat;
+            public bool FollowFinger;
+            public bool Moved;
+            public bool SelectedNewCat;
+            public Vector2 PressPosition;
+            public Vector2 SwipeAnchor;
+            public float NextDragTime;
+            public bool HasSuppressedCell;
+            public Vector2Int SuppressedCell;
+            public bool SeenThisFrame;
+        }
+
         [Header("References")]
         [SerializeField] private GridManager gridManager;
         [Tooltip("Camera that renders the board. Defaults to Camera.main.")]
@@ -57,16 +76,11 @@ namespace Catshakes
         [SerializeField, Min(0.02f)] private float tapMaxTravelInches = 0.12f;
 
         private const float FallbackDpi = 160f;
+        private const int MousePointerId = -1;
 
-        private bool isTracking;
-        private bool followFinger;
-        private bool gestureMoved;
-        private bool pressSelectedNewCat;
-        private Vector2 pressPosition;
-        private Vector2 swipeAnchor;
-        private float nextDragTime;
-        private bool hasSuppressedCell;
-        private Vector2Int suppressedCell;
+        private readonly Dictionary<int, Gesture> gestures = new Dictionary<int, Gesture>();
+        private readonly List<PointerSample> samples = new List<PointerSample>(4);
+        private readonly List<int> finished = new List<int>(4);
 
         private float Dpi => Screen.dpi > 0f ? Screen.dpi : FallbackDpi;
         private float SwipeThresholdPixels => Mathf.Max(24f, swipeThresholdInches * Dpi);
@@ -83,124 +97,173 @@ namespace Catshakes
             {
                 gameCamera = Camera.main;
             }
+
+#if !ENABLE_INPUT_SYSTEM
+            Input.multiTouchEnabled = true;
+#endif
         }
 
         private void OnDisable()
         {
-            isTracking = false;
+            gestures.Clear();
         }
 
         private void Update()
         {
             if (gridManager == null || gameCamera == null || !gridManager.IsLevelLoaded || PersistentPopups.IsAnyOpen)
             {
-                isTracking = false;
+                gestures.Clear();
                 return;
             }
 
-            if (!TryReadPointer(out PointerSample pointer))
+            ReadPointers(samples);
+            foreach (Gesture gesture in gestures.Values)
             {
-                return;
+                gesture.SeenThisFrame = false;
             }
 
-            if (pointer.PressedThisFrame)
+            foreach (PointerSample pointer in samples)
             {
-                BeginGesture(pointer);
+                if (pointer.PressedThisFrame)
+                {
+                    BeginGesture(pointer);
+                }
+
+                if (!gestures.TryGetValue(pointer.PointerId, out Gesture gesture))
+                {
+                    continue;
+                }
+
+                gesture.SeenThisFrame = true;
+                if (pointer.IsPressed)
+                {
+                    ContinueGesture(gesture, pointer.Position);
+                }
+
+                if (pointer.ReleasedThisFrame)
+                {
+                    EndGesture(gesture, pointer.Position);
+                    finished.Add(pointer.PointerId);
+                }
+                else if (!pointer.IsPressed)
+                {
+                    finished.Add(pointer.PointerId);
+                }
             }
 
-            if (!isTracking)
+            // Fingers that vanished without a release (focus lost, too many touches) end without a tap.
+            foreach (KeyValuePair<int, Gesture> pair in gestures)
             {
-                return;
+                if (!pair.Value.SeenThisFrame && !finished.Contains(pair.Key))
+                {
+                    finished.Add(pair.Key);
+                }
             }
 
-            if (pointer.IsPressed)
+            foreach (int id in finished)
             {
-                ContinueGesture(pointer.Position);
+                gestures.Remove(id);
             }
 
-            if (pointer.ReleasedThisFrame)
-            {
-                EndGesture(pointer.Position);
-            }
-            else if (!pointer.IsPressed)
-            {
-                isTracking = false;
-            }
+            finished.Clear();
         }
 
         // ---------------------------------------------------------------- gesture phases
 
         private void BeginGesture(PointerSample pointer)
         {
-            isTracking = false;
+            gestures.Remove(pointer.PointerId);
             if (IsPointerOverUi(pointer.PointerId))
             {
                 return;
             }
 
-            isTracking = true;
-            gestureMoved = false;
-            pressSelectedNewCat = false;
-            hasSuppressedCell = false;
-            pressPosition = pointer.Position;
-            swipeAnchor = pointer.Position;
-            nextDragTime = 0f;
-
             Vector2Int cell = ScreenToCell(pointer.Position);
-            bool startedOnCat = gridManager.TryGetCatAtCell(cell, out CatArmController cat);
-
-            if (startedOnCat && cat.Id != gridManager.ActiveCat)
+            bool startedOnCat = gridManager.TryGetCatAtCell(cell, out CatArmController touchedCat);
+            if (startedOnCat && IsHeld(touchedCat.Id))
             {
-                gridManager.SelectCat(cat.Id);
-                pressSelectedNewCat = true;
+                // Another finger already steers this cat.
+                return;
+            }
+
+            CatId cat;
+            if (startedOnCat)
+            {
+                cat = touchedCat.Id;
+            }
+            else
+            {
+                // Swipe elsewhere: the selected cat, or the other one while the selected cat is held by a finger.
+                cat = gridManager.ActiveCat;
+                if (IsHeld(cat))
+                {
+                    cat = cat.Other();
+                    if (IsHeld(cat))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            var gesture = new Gesture
+            {
+                Cat = cat,
+                PressPosition = pointer.Position,
+                SwipeAnchor = pointer.Position
+            };
+
+            if (startedOnCat && cat != gridManager.ActiveCat)
+            {
+                gridManager.SelectCat(cat);
+                gesture.SelectedNewCat = true;
             }
 
             switch (controlScheme)
             {
                 case ControlScheme.SwipeOnly:
-                    followFinger = false;
+                    gesture.FollowFinger = false;
                     break;
                 case ControlScheme.DragOnly:
-                    followFinger = true;
+                    gesture.FollowFinger = true;
                     break;
                 default:
-                    followFinger = startedOnCat;
+                    gesture.FollowFinger = startedOnCat;
                     break;
             }
+
+            gestures[pointer.PointerId] = gesture;
         }
 
-        private void ContinueGesture(Vector2 screenPosition)
+        private void ContinueGesture(Gesture gesture, Vector2 screenPosition)
         {
             if (gridManager.IsWon)
             {
                 return;
             }
 
-            if (followFinger)
+            if (gesture.FollowFinger)
             {
-                FollowFinger(screenPosition);
+                FollowFinger(gesture, screenPosition);
             }
             else
             {
-                DetectSwipe(screenPosition);
+                DetectSwipe(gesture, screenPosition);
             }
         }
 
-        private void EndGesture(Vector2 screenPosition)
+        private void EndGesture(Gesture gesture, Vector2 screenPosition)
         {
-            isTracking = false;
-
-            if (gestureMoved || pressSelectedNewCat || !tapAdjacentCellToMove || gridManager.IsWon)
+            if (gesture.Moved || gesture.SelectedNewCat || !tapAdjacentCellToMove || gridManager.IsWon)
             {
                 return;
             }
 
-            if ((screenPosition - pressPosition).magnitude > TapMaxTravelPixels)
+            if ((screenPosition - gesture.PressPosition).magnitude > TapMaxTravelPixels)
             {
                 return;
             }
 
-            CatArmController cat = gridManager.GetCat(gridManager.ActiveCat);
+            CatArmController cat = gridManager.GetCat(gesture.Cat);
             Vector2Int cell = ScreenToCell(screenPosition);
 
             // Only taps on a neighbouring cell are moves; other taps are ignored silently.
@@ -212,26 +275,26 @@ namespace Catshakes
 
         // ---------------------------------------------------------------- gesture handlers
 
-        private void FollowFinger(Vector2 screenPosition)
+        private void FollowFinger(Gesture gesture, Vector2 screenPosition)
         {
             Vector2Int fingerCell = ScreenToCell(screenPosition);
 
-            if (hasSuppressedCell)
+            if (gesture.HasSuppressedCell)
             {
-                if (fingerCell == suppressedCell)
+                if (fingerCell == gesture.SuppressedCell)
                 {
                     return;
                 }
 
-                hasSuppressedCell = false;
+                gesture.HasSuppressedCell = false;
             }
 
-            if (Time.unscaledTime < nextDragTime)
+            if (Time.unscaledTime < gesture.NextDragTime)
             {
                 return;
             }
 
-            CatArmController cat = gridManager.GetCat(gridManager.ActiveCat);
+            CatArmController cat = gridManager.GetCat(gesture.Cat);
             Vector2Int delta = fingerCell - cat.HandPosition;
             if (!DirectionExtensions.TryFromDominantAxis(delta, out Direction direction))
             {
@@ -239,23 +302,23 @@ namespace Catshakes
             }
 
             MoveOutcome outcome = gridManager.TryMoveHand(cat.Id, direction);
-            nextDragTime = Time.unscaledTime + dragStepInterval;
+            gesture.NextDragTime = Time.unscaledTime + dragStepInterval;
 
             if (outcome.IsSuccess())
             {
-                gestureMoved = true;
+                gesture.Moved = true;
             }
             else
             {
                 // Do not retry (and spam feedback) until the finger enters a different cell.
-                suppressedCell = fingerCell;
-                hasSuppressedCell = true;
+                gesture.SuppressedCell = fingerCell;
+                gesture.HasSuppressedCell = true;
             }
         }
 
-        private void DetectSwipe(Vector2 screenPosition)
+        private void DetectSwipe(Gesture gesture, Vector2 screenPosition)
         {
-            Vector2 delta = screenPosition - swipeAnchor;
+            Vector2 delta = screenPosition - gesture.SwipeAnchor;
             if (delta.magnitude < SwipeThresholdPixels)
             {
                 return;
@@ -263,14 +326,27 @@ namespace Catshakes
 
             if (DirectionExtensions.TryFromDominantAxis(delta, out Direction direction))
             {
-                gridManager.TryMoveHand(gridManager.ActiveCat, direction);
-                gestureMoved = true;
+                gridManager.TryMoveHand(gesture.Cat, direction);
+                gesture.Moved = true;
             }
 
-            swipeAnchor = screenPosition;
+            gesture.SwipeAnchor = screenPosition;
         }
 
         // ---------------------------------------------------------------- helpers
+
+        private bool IsHeld(CatId cat)
+        {
+            foreach (Gesture gesture in gestures.Values)
+            {
+                if (gesture.Cat == cat)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         private Vector2Int ScreenToCell(Vector2 screenPosition)
         {
@@ -292,40 +368,61 @@ namespace Catshakes
                 : eventSystem.IsPointerOverGameObject();
         }
 
-        private static bool TryReadPointer(out PointerSample sample)
+        /// <summary>Every active finger (touch id as PointerId), or the mouse as a single pointer when there is no touch.</summary>
+        private static void ReadPointers(List<PointerSample> result)
         {
+            result.Clear();
 #if ENABLE_INPUT_SYSTEM
-            UnityEngine.InputSystem.Pointer pointer = UnityEngine.InputSystem.Pointer.current;
-            if (pointer == null)
+            UnityEngine.InputSystem.Touchscreen touchscreen = UnityEngine.InputSystem.Touchscreen.current;
+            if (touchscreen != null)
             {
-                sample = default;
-                return false;
+                foreach (UnityEngine.InputSystem.Controls.TouchControl touch in touchscreen.touches)
+                {
+                    bool pressed = touch.press.isPressed;
+                    bool down = touch.press.wasPressedThisFrame;
+                    bool up = touch.press.wasReleasedThisFrame;
+                    if (pressed || down || up)
+                    {
+                        result.Add(new PointerSample(touch.position.ReadValue(), pressed, down, up, touch.touchId.ReadValue()));
+                    }
+                }
+
+                if (result.Count > 0)
+                {
+                    return;
+                }
             }
 
-            sample = new PointerSample(
-                pointer.position.ReadValue(),
-                pointer.press.isPressed,
-                pointer.press.wasPressedThisFrame,
-                pointer.press.wasReleasedThisFrame,
-                -1);
-            return true;
-#else
-            if (Input.touchCount > 0)
+            UnityEngine.InputSystem.Mouse mouse = UnityEngine.InputSystem.Mouse.current;
+            if (mouse != null)
             {
-                Touch touch = Input.GetTouch(0);
+                result.Add(new PointerSample(
+                    mouse.position.ReadValue(),
+                    mouse.leftButton.isPressed,
+                    mouse.leftButton.wasPressedThisFrame,
+                    mouse.leftButton.wasReleasedThisFrame,
+                    MousePointerId));
+            }
+#else
+            for (int i = 0; i < Input.touchCount; i++)
+            {
+                Touch touch = Input.GetTouch(i);
                 bool began = touch.phase == TouchPhase.Began;
                 bool ended = touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled;
-                sample = new PointerSample(touch.position, !ended, began, ended, touch.fingerId);
-                return true;
+                result.Add(new PointerSample(touch.position, !ended, began, ended, touch.fingerId));
             }
 
-            sample = new PointerSample(
+            if (result.Count > 0)
+            {
+                return;
+            }
+
+            result.Add(new PointerSample(
                 Input.mousePosition,
                 Input.GetMouseButton(0),
                 Input.GetMouseButtonDown(0),
                 Input.GetMouseButtonUp(0),
-                -1);
-            return true;
+                MousePointerId));
 #endif
         }
     }

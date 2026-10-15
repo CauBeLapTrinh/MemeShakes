@@ -77,6 +77,9 @@ namespace Catshakes
         [Header("Data")]
         [SerializeField] private string playerName = "Me";
         [SerializeField] private string noRunText = "No runs yet";
+        [Tooltip("Time and rank of the player's row before their first Speedrun.")]
+        [SerializeField] private string noTimeText = "--:--";
+        [SerializeField] private string noRankText = "-";
         [Tooltip("{0} = old rank, {1} = new rank.")]
         [SerializeField] private string rankUpFormat = "RANK UP! #{0} > #{1}";
         [SerializeField] private string newRankFormat = "NEW RANK! #{0}";
@@ -248,7 +251,7 @@ namespace Catshakes
             string text = seenRank > shownPlayerRank
                 ? string.Format(rankUpFormat, seenRank, shownPlayerRank)
                 : string.Format(newRankFormat, shownPlayerRank);
-            UIFx.FloatingText(playerTarget, text, UIFx.TextColor, 38f);
+            UIFx.FloatingText(playerTarget, text, UIFx.TextColor, 44f);
         }
 
         /// <summary>
@@ -339,17 +342,17 @@ namespace Catshakes
                 }
             }
 
-            SetText(row.rank, entry.Rank > 0 ? entry.Rank.ToString() : string.Empty);
+            SetText(row.rank, entry.Rank > 0 ? entry.Rank.ToString() : noRankText);
             if (row.rank != null)
             {
                 // Long ranks ("1284") get smaller so they stay in front of the icon.
                 int digits = entry.Rank.ToString().Length;
                 row.rank.enableAutoSizing = false;
-                row.rank.fontSize = digits <= 2 ? 30f : digits == 3 ? 21f : digits == 4 ? 16f : 13f;
+                row.rank.fontSize = digits <= 2 ? 35f : digits == 3 ? 30f : digits == 4 ? 25f : 20f;
             }
             SetIcon(row.icon, entry.Icon);
             SetText(row.name, entry.Name);
-            SetText(row.time, FormatTime(hasRun ? entry.Seconds : 0f));
+            SetText(row.time, hasRun ? FormatTime(entry.Seconds) : noTimeText);
 
             // "No runs yet" sits under the name; the name moves up to make room.
             bool showSubtitle = entry.IsPlayer && !hasRun;

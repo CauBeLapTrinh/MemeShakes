@@ -22,6 +22,9 @@ namespace Catshakes
         public int LinkId { get; private set; }
         public bool IsOpen { get; private set; }
 
+        /// <summary>Open by default; a linked active switch closes it (instead of opening it).</summary>
+        public bool StartsOpen { get; private set; }
+
         private void Reset()
         {
             spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -39,7 +42,8 @@ namespace Catshakes
         {
             Initialize(coords, data.position);
             LinkId = data.linkId;
-            SetOpen(false);
+            StartsOpen = data.initiallyOn;
+            SetOpen(StartsOpen);
         }
 
         public void SetOpen(bool open)

@@ -83,7 +83,7 @@ namespace Catshakes
         }
 
         /// <summary>A label that rises from <paramref name="target"/> and fades out.</summary>
-        public static void FloatingText(RectTransform target, string text, Color color, float fontSize = 40f)
+        public static void FloatingText(RectTransform target, string text, Color color, float fontSize = 46f)
         {
             RectTransform layer = OverlayLayer(target);
             if (layer == null)

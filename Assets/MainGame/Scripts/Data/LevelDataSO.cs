@@ -15,7 +15,7 @@ namespace Catshakes
         [Tooltip("ID shared by switches and doors that belong together. Ignored for Wall and Barrel.")]
         public int linkId;
 
-        [Tooltip("Initial state of a Toggle switch (Switch_2). Ignored for every other type.")]
+        [Tooltip("Toggle switch (Switch_2): starts ON. Door: starts open and a linked active switch closes it. Ignored for every other type.")]
         public bool initiallyOn;
 
         public ObstacleData(TileType tileType, Vector2Int position, int linkId = 0, bool initiallyOn = false)
@@ -133,6 +133,7 @@ namespace Catshakes
             var occupied = new HashSet<Vector2Int> { catAStart, catBStart };
             var switchLinks = new HashSet<int>();
             var doorLinks = new HashSet<int>();
+            var openDoorLinks = new HashSet<int>();
 
             for (int i = 0; i < obstacles.Count; i++)
             {
@@ -163,6 +164,10 @@ namespace Catshakes
                 else if (data.tileType == TileType.Door)
                 {
                     doorLinks.Add(data.linkId);
+                    if (data.initiallyOn)
+                    {
+                        openDoorLinks.Add(data.linkId);
+                    }
                 }
             }
 
@@ -177,7 +182,7 @@ namespace Catshakes
             {
                 if (!switchLinks.Contains(link))
                 {
-                    warnings.AppendLine("Door link " + link + " has no switch and can never open.");
+                    warnings.AppendLine("Door link " + link + " has no switch and can never " + (openDoorLinks.Contains(link) ? "close." : "open."));
                 }
             }
 

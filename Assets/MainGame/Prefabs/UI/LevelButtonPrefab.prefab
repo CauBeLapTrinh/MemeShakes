@@ -173,6 +173,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Catshakes.UIButtonPress
   pressedScale: 0.93
   speed: 1.5
+  playClickSound: 1
+  hoverScale: 1.07
+  playHoverSound: 1
 --- !u!114 &1588215562260236859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -262,8 +265,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 0
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
-  m_sharedMaterial: {fileID: 7207298818037194465, guid: bb29b446e2d85d44caa4a5e4a61ce375, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: eea2810b4e94794479e8a850c2d399b7, type: 2}
+  m_sharedMaterial: {fileID: 2048517355424050155, guid: eea2810b4e94794479e8a850c2d399b7, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -287,8 +290,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 56
-  m_fontSizeBase: 56
+  m_fontSize: 65
+  m_fontSizeBase: 65
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18

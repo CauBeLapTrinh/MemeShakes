@@ -185,7 +185,7 @@ MonoBehaviour:
   - tileType: 5
     position: {x: 3, y: 2}
     linkId: 1
-    initiallyOn: 0
+    initiallyOn: 1
   asciiLayout: '########
 
     ####..##

@@ -309,6 +309,7 @@ namespace Catshakes
                 yield break;
             }
 
+            GameAnalytics.LevelComplete(manager.CurrentLevelIndex, manager.IsSpeedrunActive, gridManager.MoveCount, Time.timeSinceLevelLoad);
             manager.ReportLevelCompleted();
 
             // Still true only while more Speedrun levels remain.

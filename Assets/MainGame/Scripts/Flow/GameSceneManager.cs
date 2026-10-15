@@ -123,6 +123,9 @@ namespace Catshakes
             DontDestroyOnLoad(gameObject);
             SceneManager.sceneLoaded += OnSceneLoaded;
 
+            // Phones run at 30 fps unless asked; the animations and the scrolling backgrounds want 60.
+            Application.targetFrameRate = 60;
+
             if (TryResolveSceneId(SceneManager.GetActiveScene().name, out SceneId activeScene))
             {
                 CurrentScene = activeScene;
@@ -200,6 +203,7 @@ namespace Catshakes
 
             IsSpeedrunActive = true;
             SpeedrunElapsedSeconds = 0f;
+            GameAnalytics.SpeedrunStart();
             BeginLevel(0);
         }
 
@@ -287,6 +291,7 @@ namespace Catshakes
         {
             CurrentLevelIndex = levelIndex;
             levelCompletedPending = false;
+            GameAnalytics.LevelStart(levelIndex, IsSpeedrunActive);
             LoadScene(SceneId.Gameplay);
         }
 
@@ -303,6 +308,7 @@ namespace Catshakes
             }
 
             IsSpeedrunActive = false;
+            GameAnalytics.SpeedrunComplete(total, isNewBest);
             SpeedrunFinished?.Invoke(total, isNewBest);
         }
 

@@ -23,12 +23,15 @@ namespace Catshakes
         [SerializeField] private Button settingsCloseButton;
         [Tooltip("Full-screen dimmed area behind the popup; a tap on it closes the popup.")]
         [SerializeField] private Button settingsDimButton;
+        [Tooltip("\"Give up\" under the popup; shown only when the opener passes a give-up action (the gameplay scene).")]
+        [SerializeField] private Button giveUpButton;
 
         [Header("Timing")]
         [SerializeField, Min(0f)] private float settingsDuration = 0.2f;
 
         private static PersistentPopups instance;
         private bool isAnimating;
+        private Action giveUpAction;
 
         /// <summary>Raised after the Settings popup has finished closing.</summary>
         public event Action SettingsClosed;
@@ -97,6 +100,11 @@ namespace Catshakes
                 settingsDimButton.onClick.AddListener(CloseSettings);
             }
 
+            if (giveUpButton != null)
+            {
+                giveUpButton.onClick.AddListener(HandleGiveUpClicked);
+            }
+
             if (settingsGroup != null)
             {
                 settingsGroup.alpha = 0f;
@@ -122,9 +130,21 @@ namespace Catshakes
 
         public void OpenSettings()
         {
+            OpenSettings(null);
+        }
+
+        /// <summary>Opens the Settings popup; with <paramref name="onGiveUp"/> it also shows the "Give up" button.</summary>
+        public void OpenSettings(Action onGiveUp)
+        {
             if (IsSettingsOpen || isAnimating || settingsGroup == null)
             {
                 return;
+            }
+
+            giveUpAction = onGiveUp;
+            if (giveUpButton != null)
+            {
+                giveUpButton.gameObject.SetActive(onGiveUp != null);
             }
 
             SoundManager.Play(SoundId.PopupOpen);
@@ -140,6 +160,20 @@ namespace Catshakes
 
             SoundManager.Play(SoundId.PopupClose);
             StartCoroutine(SettingsRoutine(false));
+        }
+
+        /// <summary>Closes the popup (it finishes fading on its own, even across a scene load) and runs the give-up action.</summary>
+        private void HandleGiveUpClicked()
+        {
+            if (!IsSettingsOpen || isAnimating)
+            {
+                return;
+            }
+
+            Action action = giveUpAction;
+            giveUpAction = null;
+            CloseSettings();
+            action?.Invoke();
         }
 
         private IEnumerator SettingsRoutine(bool open)
