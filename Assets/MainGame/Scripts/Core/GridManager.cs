@@ -18,10 +18,13 @@ namespace Catshakes
     ///  - Switch_1 (momentary) is active while a barrel, severed hand or a hand tip lies on it. Arm segments do not count.
     ///  - Switch_2 (toggle) flips each time a hand or barrel enters its cell. Arm segments do not count.
     ///  - A hand starts one cell in front of its cat (the facing stored in the level), never on the body.
-    ///  - A door is open while any linked switch is active (a door that starts open: while none is), and also while
-    ///    a barrel, severed hand, hand tip or the start cell of an arm is in its doorway.
+    ///  - A door is open while any linked switch is active (a door that starts open: while none is). Standing in the
+    ///    doorway does not keep it open. Doors stand between two walls (see LevelDataSO.Validate).
+    ///  - When a door closes on a barrel or a severed hand, it is crushed and gone.
     ///  - When a door closes while an arm passes through it, the arm is cut: the part from the door on is removed,
     ///    the arm ends just in front of the door, and the old hand stays behind as a severed hand that acts like a barrel.
+    ///  - When a door closes on a hand tip, the arm retracts the same way, but nothing is left behind (the hand is crushed).
+    ///  - A cat's body and the start cell of its arm are never pushed onto a door cell.
     /// </summary>
     public sealed class GridManager : MonoBehaviour
     {
@@ -98,6 +101,9 @@ namespace Catshakes
 
         /// <summary>Raised when a closing door cuts an arm, with the door cell.</summary>
         public event Action<CatId, Vector2Int> ArmCutAtCell;
+
+        /// <summary>Raised when a closing door crushes a barrel or a severed hand during play (not on load, undo or reset). Argument: door cell.</summary>
+        public event Action<Vector2Int> ObjectCrushed;
 
         /// <summary>Raised when a door opens or closes during play (not on load, undo or reset). Arguments: cell, open.</summary>
         public event Action<Vector2Int, bool> DoorChanged;
@@ -492,7 +498,10 @@ namespace Catshakes
         /// <summary>Can <paramref name="cat"/> (body and every arm cell) move one cell in <paramref name="direction"/>?</summary>
         private bool CanCatShift(CatArmController cat, Vector2Int direction, CatArmController pusher)
         {
-            if (cat.IsPlayingCut || !CanCatEnterCell(cat.RootPosition + direction, pusher))
+            // The body and the start cell of the arm can never stand in a doorway: a door cannot cut them.
+            if (cat.IsPlayingCut
+                || !CanCatEnterCell(cat.RootPosition + direction, pusher)
+                || doorsByCell.ContainsKey(cat.RootPosition + direction))
             {
                 return false;
             }
@@ -500,7 +509,8 @@ namespace Catshakes
             IReadOnlyList<Vector2Int> path = cat.ArmPath;
             for (int i = 0; i < path.Count; i++)
             {
-                if (!CanCatEnterCell(path[i] + direction, pusher))
+                Vector2Int next = path[i] + direction;
+                if (!CanCatEnterCell(next, pusher) || (i == 0 && doorsByCell.ContainsKey(next)))
                 {
                     return false;
                 }
@@ -523,8 +533,9 @@ namespace Catshakes
             var oldCells = new HashSet<Vector2Int>(cat.ArmPath);
             cat.ShiftBy(direction);
 
-            // A hand that was shoved onto a toggle switch flips it, like a hand entering that cell.
-            // Other arm cells that slide over a switch do not count.
+            // A body or hand that was shoved onto a toggle switch flips it, like a hand entering that cell.
+            // Other arm cells that slide over a switch do not count. The body never lies on the arm, so its new cell is always new.
+            FlipToggleAt(cat.RootPosition);
             Vector2Int hand = cat.HandPosition;
             if (!oldCells.Contains(hand))
             {
@@ -625,7 +636,11 @@ namespace Catshakes
             for (int pass = 0; pass < maxPasses; pass++)
             {
                 UpdateSwitchesAndDoors();
-                if (!CutArmsAtClosedDoors())
+
+                // Both run every pass; crushing a barrel or cutting an arm can release a switch and change the doors again.
+                bool crushed = CrushObjectsAtClosedDoors();
+                bool cut = CutArmsAtClosedDoors();
+                if (!crushed && !cut)
                 {
                     return;
                 }
@@ -653,7 +668,7 @@ namespace Catshakes
             for (int i = 0; i < doors.Count; i++)
             {
                 DoorEntity door = doors[i];
-                bool shouldBeOpen = IsLinkActive(door.LinkId) != door.StartsOpen || IsDoorwayOccupied(door.GridPosition);
+                bool shouldBeOpen = IsLinkActive(door.LinkId) != door.StartsOpen;
                 bool wasOpen = door.IsOpen;
                 door.SetOpen(shouldBeOpen);
                 if (door.IsOpen != wasOpen && !interactiveEventsMuted)
@@ -671,26 +686,53 @@ namespace Catshakes
             }
         }
 
-        /// <summary>A momentary switch is pressed by a barrel / severed hand or by a hand tip. Arm segments passing over it do not count.</summary>
+        /// <summary>
+        /// A momentary switch is pressed by a barrel / severed hand, by a hand tip or by a cat's body (a cat shoved onto it).
+        /// Arm segments passing over it do not count.
+        /// </summary>
         private bool IsCellPressed(Vector2Int cell)
         {
-            return barrelsByCell.ContainsKey(cell) || catA.HandPosition == cell || catB.HandPosition == cell;
-        }
-
-        /// <summary>
-        /// Something that keeps a door open: a barrel or severed hand, a cat body, a hand tip or the start cell of an arm.
-        /// Cells in the middle of an arm do not count, so a closing door can cut the arm there.
-        /// </summary>
-        private bool IsDoorwayOccupied(Vector2Int cell)
-        {
             return barrelsByCell.ContainsKey(cell)
-                   || catA.RootPosition == cell
-                   || catB.RootPosition == cell
-                   || catA.HoldsDoorAt(cell)
-                   || catB.HoldsDoorAt(cell);
+                   || catA.HandPosition == cell || catB.HandPosition == cell
+                   || catA.RootPosition == cell || catB.RootPosition == cell;
         }
 
-        // ---------------------------------------------------------------- arm cutting
+        // ---------------------------------------------------------------- crushing and arm cutting
+
+        /// <summary>A closed door crushes every barrel and severed hand in its doorway. Returns true when something was crushed.</summary>
+        private bool CrushObjectsAtClosedDoors()
+        {
+            bool crushedAny = CrushOnClosedDoors(barrels);
+            return CrushOnClosedDoors(severedHands) || crushedAny;
+        }
+
+        private bool CrushOnClosedDoors(List<Barrel> list)
+        {
+            bool crushedAny = false;
+            for (int i = 0; i < list.Count; i++)
+            {
+                Barrel barrel = list[i];
+                if (barrel.IsCrushed || !IsClosedDoor(barrel.GridPosition))
+                {
+                    continue;
+                }
+
+                Vector2Int cell = barrel.GridPosition;
+                if (barrelsByCell.TryGetValue(cell, out Barrel mapped) && mapped == barrel)
+                {
+                    barrelsByCell.Remove(cell);
+                }
+
+                barrel.Crush(interactiveEventsMuted ? 0f : 0.15f);
+                crushedAny = true;
+                if (!interactiveEventsMuted)
+                {
+                    ObjectCrushed?.Invoke(cell);
+                }
+            }
+
+            return crushedAny;
+        }
 
         private bool CutArmsAtClosedDoors()
         {
@@ -727,7 +769,14 @@ namespace Catshakes
         {
             cat.CompleteAnimationImmediately();
             Vector2Int doorCell = cat.ArmPath[cutIndex];
-            SpawnSeveredHand(cat);
+
+            // The old hand drops as a severed hand. If it lies on a closed door (the door closed on the tip itself)
+            // it is crushed at once, so nothing is left behind.
+            if (!IsClosedDoor(cat.HandPosition))
+            {
+                SpawnSeveredHand(cat);
+            }
+
             cat.CutAt(cutIndex);
             ArmCut?.Invoke(cat.Id);
             ArmCutAtCell?.Invoke(cat.Id, doorCell);
@@ -777,9 +826,11 @@ namespace Catshakes
         private GameStateSnapshot CaptureSnapshot()
         {
             var barrelCells = new List<Vector2Int>(barrels.Count);
+            var barrelCrushed = new List<bool>(barrels.Count);
             for (int i = 0; i < barrels.Count; i++)
             {
                 barrelCells.Add(barrels[i].GridPosition);
+                barrelCrushed.Add(barrels[i].IsCrushed);
             }
 
             var toggleStates = new List<bool>(toggleSwitches.Count);
@@ -789,12 +840,16 @@ namespace Catshakes
             }
 
             var severedCells = new List<Vector2Int>(severedHands.Count);
+            var severedCrushed = new List<bool>(severedHands.Count);
             for (int i = 0; i < severedHands.Count; i++)
             {
                 severedCells.Add(severedHands[i].GridPosition);
+                severedCrushed.Add(severedHands[i].IsCrushed);
             }
 
-            return new GameStateSnapshot(catA.RootPosition, catB.RootPosition, catA.ArmPath, catB.ArmPath, barrelCells, severedCells, toggleStates, moveCount);
+            return new GameStateSnapshot(
+                catA.RootPosition, catB.RootPosition, catA.ArmPath, catB.ArmPath,
+                barrelCells, barrelCrushed, severedCells, severedCrushed, toggleStates, moveCount);
         }
 
         private void ApplySnapshot(GameStateSnapshot snapshot)
@@ -804,14 +859,15 @@ namespace Catshakes
 
             barrelsByCell.Clear();
             IReadOnlyList<Vector2Int> cells = snapshot.BarrelPositions;
+            IReadOnlyList<bool> barrelCrushed = snapshot.BarrelCrushed;
             for (int i = 0; i < barrels.Count; i++)
             {
-                barrels[i].SetGridPosition(cells[i], false);
-                barrelsByCell[cells[i]] = barrels[i];
+                RestoreCrate(barrels[i], cells[i], barrelCrushed[i]);
             }
 
             // Severed hands are only ever added, so the snapshot holds a prefix of the current list.
             IReadOnlyList<Vector2Int> severedCells = snapshot.SeveredHandPositions;
+            IReadOnlyList<bool> severedCrushed = snapshot.SeveredHandCrushed;
             while (severedHands.Count > severedCells.Count)
             {
                 Barrel extra = severedHands[severedHands.Count - 1];
@@ -822,8 +878,7 @@ namespace Catshakes
 
             for (int i = 0; i < severedHands.Count; i++)
             {
-                severedHands[i].SetGridPosition(severedCells[i], false);
-                barrelsByCell[severedCells[i]] = severedHands[i];
+                RestoreCrate(severedHands[i], severedCells[i], severedCrushed[i]);
             }
 
             IReadOnlyList<bool> states = snapshot.ToggleStates;
@@ -836,6 +891,22 @@ namespace Catshakes
             interactiveEventsMuted = true;
             RefreshInteractiveState();
             interactiveEventsMuted = false;
+        }
+
+        /// <summary>Puts a barrel or severed hand back where the snapshot had it (crushed ones stay hidden and off the board).</summary>
+        private void RestoreCrate(Barrel crate, Vector2Int cell, bool crushed)
+        {
+            crate.Restore();
+            crate.SetGridPosition(cell, false);
+
+            if (crushed)
+            {
+                crate.Crush(0f);
+            }
+            else
+            {
+                barrelsByCell[cell] = crate;
+            }
         }
 
         private void ApplySelection()

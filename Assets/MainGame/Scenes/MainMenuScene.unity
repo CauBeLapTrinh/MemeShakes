@@ -255,8 +255,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f9c79a4e36be68f46bde1eca34714fb8, type: 2}
   - {fileID: 11400000, guid: 4c1ae6ca266c1e442a23d5ab5508c394, type: 2}
   - {fileID: 11400000, guid: a30a489b2f5c366408b1b8598ef7ef08, type: 2}
+  unlockAllLevels: 1
   fadeGroup: {fileID: 970321094}
   fadeDuration: 0.25
+  levelTransitionFadeDuration: 0.4
+  minBlackHoldSeconds: 0.08
 --- !u!4 &53140112
 Transform:
   m_ObjectHideFlags: 0

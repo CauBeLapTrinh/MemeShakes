@@ -39,7 +39,7 @@ namespace Catshakes.EditorTools
         private static readonly string[] ToolLabels =
         {
             "Wall (#)", "Barrel (O)", "Switch 1 - hold", "Switch 2 - toggle",
-            "Door", "Cat A start (P)", "Cat B start (Q)", "Eraser"
+            "Door (between 2 walls)", "Cat A start (P)", "Cat B start (Q)", "Eraser"
         };
 
         private const string LevelFolder = "Assets/MainGame/Levels";

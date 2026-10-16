@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Catshakes
 {
@@ -24,8 +25,9 @@ namespace Catshakes
         [Tooltip("How long the victory effects play before the win popup (or the next Speedrun level) appears.")]
         [SerializeField, Min(0f)] private float winEffectDuration = 1.4f;
 
-        [Tooltip("Extra pause after the victory effects, before the next Speedrun level loads.")]
-        [SerializeField, Min(0f)] private float speedrunAdvanceDelay = 0.6f;
+        [Tooltip("Extra pause after the victory effects, before the screen fades out and the next level loads.")]
+        [FormerlySerializedAs("speedrunAdvanceDelay")]
+        [SerializeField, Min(0f)] private float nextLevelDelay = 0.3f;
 
         [Header("Pixel effects")]
         [Tooltip("Small pixel particle bursts for moves, pushes, cuts, switches, doors and cat switching.")]
@@ -46,6 +48,7 @@ namespace Catshakes
                 gridManager.MoveResolved += HandleMoveResolved;
                 gridManager.ObjectPushed += HandleObjectPushed;
                 gridManager.ArmCutAtCell += HandleArmCut;
+                gridManager.ObjectCrushed += HandleObjectCrushed;
                 gridManager.SwitchChanged += HandleSwitchChanged;
                 gridManager.DoorChanged += HandleDoorChanged;
                 gridManager.CatSwitched += HandleCatSwitched;
@@ -61,6 +64,7 @@ namespace Catshakes
                 gridManager.MoveResolved -= HandleMoveResolved;
                 gridManager.ObjectPushed -= HandleObjectPushed;
                 gridManager.ArmCutAtCell -= HandleArmCut;
+                gridManager.ObjectCrushed -= HandleObjectCrushed;
                 gridManager.SwitchChanged -= HandleSwitchChanged;
                 gridManager.DoorChanged -= HandleDoorChanged;
                 gridManager.CatSwitched -= HandleCatSwitched;
@@ -161,6 +165,14 @@ namespace Catshakes
             if (playPixelEffects)
             {
                 PixelFx.Sparks(CellWorld(doorCell), CellSize);
+            }
+        }
+
+        private void HandleObjectCrushed(Vector2Int cell)
+        {
+            if (playPixelEffects)
+            {
+                PixelFx.Smash(CellWorld(cell), CellSize);
             }
         }
 
@@ -273,8 +285,8 @@ namespace Catshakes
         }
 
         /// <summary>
-        /// Victory effects first (confetti, ring, pulsing cats), then the result: the win popup or the next Speedrun level.
-        /// Resetting the level during the effects cancels the result.
+        /// Victory effects first (confetti, ring, pulsing cats), then a fade to black and the next level (no popup).
+        /// Only a finished Speedrun stays, to show its time. Resetting the level during the effects cancels the result.
         /// </summary>
         private IEnumerator WinSequence()
         {
@@ -309,13 +321,22 @@ namespace Catshakes
                 yield break;
             }
 
-            GameAnalytics.LevelComplete(manager.CurrentLevelIndex, manager.IsSpeedrunActive, gridManager.MoveCount, Time.timeSinceLevelLoad);
+            bool wasSpeedrun = manager.IsSpeedrunActive;
+            GameAnalytics.LevelComplete(manager.CurrentLevelIndex, wasSpeedrun, gridManager.MoveCount, Time.timeSinceLevelLoad);
             manager.ReportLevelCompleted();
 
-            // Still true only while more Speedrun levels remain.
-            if (manager.IsSpeedrunActive)
+            // A finished Speedrun stays on screen: the HUD shows its time. Every other win moves on by itself.
+            bool speedrunJustFinished = wasSpeedrun && !manager.IsSpeedrunActive;
+            if (speedrunJustFinished)
             {
-                yield return new WaitForSecondsRealtime(speedrunAdvanceDelay);
+                yield break;
+            }
+
+            yield return new WaitForSecondsRealtime(nextLevelDelay);
+
+            // The player may have left through the menu during the pause.
+            if (!manager.IsTransitioning && manager.CurrentScene == SceneId.Gameplay)
+            {
                 manager.GoToNextLevel();
             }
         }

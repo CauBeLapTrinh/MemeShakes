@@ -114,6 +114,14 @@ namespace Catshakes.Solver
                 }
             }
 
+            // A door must stand between two walls, so every door gets a wall line with a one-cell gap: the gap is the doorway.
+            int plannedDoors = o.Doors >= 0 ? o.Doors : o.Difficulty == GenDifficulty.Easy ? 1 : o.Difficulty == GenDifficulty.Medium ? 1 + rng.Next(2) : 2 + rng.Next(2);
+            int dividers = Math.Min(plannedDoors, 2);
+            for (int i = 0; i < dividers; i++)
+            {
+                if (rng.Next(10) < 8) AddDivider(spec, rng);
+            }
+
             // Keep the largest connected floor area only.
             int[] component = Components(spec, -1, null);
             var sizes = new Dictionary<int, int>();
@@ -160,14 +168,16 @@ namespace Catshakes.Solver
             if (!ChooseFacing(spec, rng, 1, spec.HandStart(0))) return null;
 
             // Doors that cut the level in two, each with a switch on a side the cats can reach without that door.
-            int doorCount = o.Doors >= 0 ? o.Doors : o.Difficulty == GenDifficulty.Easy ? 1 : o.Difficulty == GenDifficulty.Medium ? 1 + rng.Next(2) : 2 + rng.Next(2);
+            int doorCount = plannedDoors;
             int barrelCount = o.Barrels >= 0 ? o.Barrels : o.Difficulty == GenDifficulty.Easy ? rng.Next(2) : o.Difficulty == GenDifficulty.Medium ? 1 + rng.Next(2) : 1 + rng.Next(3);
 
             for (int link = 1; link <= doorCount && link <= 9; link++)
             {
+                // Doors only go between two walls. Prefer a doorway that really separates the cats.
                 List<int> candidates = SeparatingCells(spec);
-                int doorCell = candidates.Count > 0 ? candidates[rng.Next(candidates.Count)] : RandomFreeCell(spec, rng, true);
-                if (doorCell < 0) return null;
+                if (candidates.Count == 0) candidates = DoorwayCells(spec);
+                if (candidates.Count == 0) return null;
+                int doorCell = candidates[rng.Next(candidates.Count)];
 
                 bool startsOpen = o.Difficulty == GenDifficulty.Hard && rng.Next(5) == 0;
                 spec.Doors.Add(new DoorSpec { Cell = doorCell, Link = link, StartsOpen = startsOpen });
@@ -252,12 +262,61 @@ namespace Catshakes.Solver
 
             for (int c = 0; c < spec.Wall.Length; c++)
             {
-                if (spec.Wall[c] || IsReserved(spec, c) || spec.IsOccupied(c)) continue;
+                if (spec.Wall[c] || IsReserved(spec, c) || spec.IsOccupied(c) || !IsBetweenWalls(spec, c)) continue;
                 int[] d = Distances(spec, spec.Root[0], null, c);
                 if (d[spec.Root[1]] < 0) result.Add(c);
             }
 
             return result;
+        }
+
+        /// <summary>Free cells with a wall on both sides (left and right, or above and below): the only places a door may stand.</summary>
+        private static List<int> DoorwayCells(PuzzleSpec spec)
+        {
+            var result = new List<int>();
+            for (int c = 0; c < spec.Wall.Length; c++)
+            {
+                if (spec.Wall[c] || IsReserved(spec, c) || spec.IsOccupied(c) || !IsBetweenWalls(spec, c)) continue;
+                result.Add(c);
+            }
+
+            return result;
+        }
+
+        public static bool IsBetweenWalls(PuzzleSpec spec, int cell)
+        {
+            int x = cell % spec.Width;
+            int y = cell / spec.Width;
+            bool left = x == 0 || spec.Wall[cell - 1];
+            bool right = x == spec.Width - 1 || spec.Wall[cell + 1];
+            bool down = y == 0 || spec.Wall[cell - spec.Width];
+            bool up = y == spec.Height - 1 || spec.Wall[cell + spec.Width];
+            return (left && right) || (up && down);
+        }
+
+        /// <summary>A full wall line across the level with a single gap (the doorway), plus free cells on both sides of the gap.</summary>
+        private static void AddDivider(PuzzleSpec spec, Random rng)
+        {
+            int w = spec.Width, h = spec.Height;
+            bool vertical = rng.Next(2) == 0;
+            if (vertical)
+            {
+                if (w < 7) return;
+                int x = 2 + rng.Next(w - 4);
+                int gap = 1 + rng.Next(h - 2);
+                for (int y = 1; y < h - 1; y++) spec.Wall[spec.Cell(x, y)] = y != gap;
+                spec.Wall[spec.Cell(x - 1, gap)] = false;
+                spec.Wall[spec.Cell(x + 1, gap)] = false;
+            }
+            else
+            {
+                if (h < 7) return;
+                int y = 2 + rng.Next(h - 4);
+                int gap = 1 + rng.Next(w - 2);
+                for (int x = 1; x < w - 1; x++) spec.Wall[spec.Cell(x, y)] = x != gap;
+                spec.Wall[spec.Cell(gap, y - 1)] = false;
+                spec.Wall[spec.Cell(gap, y + 1)] = false;
+            }
         }
 
         private static int[] Components(PuzzleSpec spec, int blocked, HashSet<int> blockedSet)
@@ -479,6 +538,7 @@ namespace Catshakes.Solver
                 if (stats.ToggleFlips > 0) sb.Append(" toggle-switch");
                 if (stats.DoorChanges > 0) sb.Append(" doors");
                 if (stats.Cuts > 0) sb.Append(" arm-cut");
+                if (stats.Crushes > 0) sb.Append(" crush");
                 if (stats.CatPushes > 0) sb.Append(" cat-push");
             }
 

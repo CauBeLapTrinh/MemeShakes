@@ -247,10 +247,11 @@ namespace Catshakes
             GameSceneManager manager = GameSceneManager.Instance;
             if (manager == null || manager.IsSpeedrunActive)
             {
-                // A Speedrun with levels left advances automatically; no panel needed.
                 return;
             }
 
+            // Solved levels hand over to the next one by themselves (see GameplayController); only a finished Speedrun
+            // keeps a panel, because it shows the final time.
             if (speedrunSummary != null)
             {
                 ShowWinPanel(speedrunWinTitle, speedrunSummary, false);
@@ -267,8 +268,6 @@ namespace Catshakes
 
                 return;
             }
-
-            ShowWinPanel(winTitle, string.Format(movesFormat, gridManager.MoveCount), manager.HasNextLevel);
         }
 
         // ---------------------------------------------------------------- win panel
@@ -340,7 +339,7 @@ namespace Catshakes
         private void HandleResetClicked()
         {
             GameSceneManager manager = GameSceneManager.Instance;
-            if (gridManager.IsWon && manager != null && manager.IsSpeedrunActive)
+            if (gridManager.IsWon && manager != null && (winPanel == null || !winPanel.activeSelf))
             {
                 // The level is already solved and the next one is about to load.
                 return;

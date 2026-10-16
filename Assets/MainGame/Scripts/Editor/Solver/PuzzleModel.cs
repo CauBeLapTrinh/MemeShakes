@@ -132,6 +132,7 @@ namespace Catshakes.Solver
         public bool PushedCat;
         public bool HandsMet;
         public int Cuts;
+        public int Crushed;
         public int ToggleFlips;
         public bool Overflow;
     }
@@ -472,10 +473,14 @@ namespace Catshakes.Solver
 
         private bool CanCatShift(PuzzleState s, int cat, int dir, int pusher)
         {
-            if (!CanCatEnterCell(s, Neighbor[s.Root[cat] * 4 + dir], pusher)) return false;
+            // The body and the start cell of the arm are never pushed onto a door cell (open or closed).
+            int rootTarget = Neighbor[s.Root[cat] * 4 + dir];
+            if (!CanCatEnterCell(s, rootTarget, pusher) || DoorAt[rootTarget] >= 0) return false;
             for (int i = 0; i < s.Len[cat]; i++)
             {
-                if (!CanCatEnterCell(s, Neighbor[s.Arm[cat][i] * 4 + dir], pusher)) return false;
+                int next = Neighbor[s.Arm[cat][i] * 4 + dir];
+                if (!CanCatEnterCell(s, next, pusher)) return false;
+                if (i == 0 && DoorAt[next] >= 0) return false;
             }
 
             return true;
@@ -496,6 +501,9 @@ namespace Catshakes.Solver
 
             s.Root[cat] = Neighbor[s.Root[cat] * 4 + dir];
             for (int i = 0; i < len; i++) arm[i] = Neighbor[arm[i] * 4 + dir];
+
+            // The shoved body flips a toggle switch it lands on (it never lies on its own arm, so its cell is always new).
+            FlipToggleAt(s, s.Root[cat], ref ev);
 
             // Only the hand tip flips a toggle switch; other arm cells sliding over a switch do not count.
             int newHand = arm[len - 1];
@@ -584,17 +592,21 @@ namespace Catshakes.Solver
             for (int pass = 0; pass < 16; pass++)
             {
                 UpdateSwitchesAndDoors(s);
-                if (!CutArms(s, ref ev)) return;
+                bool crushed = CrushBarrels(s, ref ev);
+                bool cut = CutArms(s, ref ev);
+                if (!crushed && !cut) return;
             }
 
             UpdateSwitchesAndDoors(s);
         }
 
-        /// <summary>Recomputes momentary switches (pressed by a barrel / severed hand or a hand tip) and doors.</summary>
+        /// <summary>Recomputes momentary switches (pressed by a barrel / severed hand, a hand tip or a cat body) and doors.</summary>
         public void UpdateSwitchesAndDoors(PuzzleState s)
         {
             int hand0 = s.Hand(0);
             int hand1 = s.Hand(1);
+            int root0 = s.Root[0];
+            int root1 = s.Root[1];
             for (int i = 0; i < Switches.Length; i++)
             {
                 SwitchSpec sw = Switches[i];
@@ -604,7 +616,7 @@ namespace Catshakes.Solver
                 }
                 else
                 {
-                    s.SwitchActive[i] = hand0 == sw.Cell || hand1 == sw.Cell || s.HasBarrel(sw.Cell)
+                    s.SwitchActive[i] = hand0 == sw.Cell || hand1 == sw.Cell || root0 == sw.Cell || root1 == sw.Cell || s.HasBarrel(sw.Cell)
                                         || (ArmsPressSwitches && (s.ArmContains(0, sw.Cell) || s.ArmContains(1, sw.Cell)));
                 }
             }
@@ -622,16 +634,26 @@ namespace Catshakes.Solver
                     }
                 }
 
-                bool occupied = s.HasBarrel(door.Cell)
-                                || s.Root[0] == door.Cell || s.Root[1] == door.Cell
-                                || HoldsDoorAt(s, 0, door.Cell) || HoldsDoorAt(s, 1, door.Cell);
-                s.DoorOpen[d] = linkActive != door.StartsOpen || occupied;
+                // Standing in the doorway does not keep a door open.
+                s.DoorOpen[d] = linkActive != door.StartsOpen;
             }
         }
 
-        private static bool HoldsDoorAt(PuzzleState s, int cat, int cell)
+        /// <summary>A closed door crushes the barrels and severed hands in its doorway.</summary>
+        private bool CrushBarrels(PuzzleState s, ref MoveEvents ev)
         {
-            return s.Hand(cat) == cell || s.Arm[cat][0] == cell;
+            bool crushedAny = false;
+            for (int i = s.BarrelCount - 1; i >= 0; i--)
+            {
+                if (IsClosedDoor(s, s.Barrels[i]))
+                {
+                    s.RemoveBarrelAt(i);
+                    ev.Crushed++;
+                    crushedAny = true;
+                }
+            }
+
+            return crushedAny;
         }
 
         private bool CutArms(PuzzleState s, ref MoveEvents ev)
@@ -646,7 +668,9 @@ namespace Catshakes.Solver
                 {
                     if (s.DoorOpen[d]) continue;
                     int cell = Doors[d].Cell;
-                    for (int i = 1; i < len - 1; i++)
+
+                    // Any arm cell except the start cell, the tip included: a door closing on the tip pulls the arm back too.
+                    for (int i = 1; i < len; i++)
                     {
                         if (arm[i] == cell)
                         {
@@ -658,8 +682,9 @@ namespace Catshakes.Solver
 
                 if (cutIndex < 0) continue;
 
-                // The old hand stays behind as a severed hand (acts like a barrel); the arm is back at its start cell.
-                if (!s.AddBarrel(arm[len - 1])) ev.Overflow = true;
+                // The old hand stays behind as a severed hand (acts like a barrel), unless it lies on a closed door:
+                // then it is crushed at once. The arm is back at its start cell.
+                if (!IsClosedDoor(s, arm[len - 1]) && !s.AddBarrel(arm[len - 1])) ev.Overflow = true;
                 s.Len[cat] = 1;
                 ev.Cuts++;
                 cutAny = true;

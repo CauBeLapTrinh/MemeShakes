@@ -35,10 +35,18 @@ namespace Catshakes
         [Header("Levels (in play order)")]
         [SerializeField] private LevelDataSO[] levels = new LevelDataSO[0];
 
+        [Header("Testing")]
+        [Tooltip("Opens every level (and Speed Run) without playing through the game. Turn it on before building a test build for a phone, and off for release.")]
+        [SerializeField] private bool unlockAllLevels;
+
         [Header("Transition (optional)")]
         [Tooltip("Full-screen black Image with a CanvasGroup, kept under this object. Leave empty for instant loads.")]
         [SerializeField] private CanvasGroup fadeGroup;
         [SerializeField, Min(0f)] private float fadeDuration = 0.25f;
+        [Tooltip("Fade out / fade in time (each) when a solved level hands over to the next one. Slower than a menu change so it feels like a scene cut.")]
+        [SerializeField, Min(0f)] private float levelTransitionFadeDuration = 0.4f;
+        [Tooltip("Black screen is held at least this long between the two fades, so a fast load does not flash.")]
+        [SerializeField, Min(0f)] private float minBlackHoldSeconds = 0.08f;
 
         private bool levelCompletedPending;
         private bool isTimerPausedByGame;
@@ -67,12 +75,23 @@ namespace Catshakes
         public bool HasBestSpeedrun => BestSpeedrunSeconds > 0f;
 
         /// <summary>True once the player has cleared every level; the Speed Run button of the menu depends on it.</summary>
-        public static bool IsSpeedrunUnlocked => PlayerPrefs.GetInt(AllLevelsClearedKey, 0) == 1;
+        public static bool IsSpeedrunUnlocked => (Instance != null && Instance.unlockAllLevels) || PlayerPrefs.GetInt(AllLevelsClearedKey, 0) == 1;
+
+        /// <summary>True while the "Unlock All Levels" testing toggle is on.</summary>
+        public bool AreAllLevelsUnlocked => unlockAllLevels;
 
         /// <summary>How many levels (counted from the first) the player may open.</summary>
         public int UnlockedLevelCount
         {
-            get { return Mathf.Clamp(PlayerPrefs.GetInt(UnlockedLevelsKey, 1), 1, Mathf.Max(1, LevelCount)); }
+            get
+            {
+                if (unlockAllLevels)
+                {
+                    return Mathf.Max(1, LevelCount);
+                }
+
+                return Mathf.Clamp(PlayerPrefs.GetInt(UnlockedLevelsKey, 1), 1, Mathf.Max(1, LevelCount));
+            }
         }
 
         /// <summary>True while the Speedrun clock is advancing.</summary>
@@ -113,6 +132,11 @@ namespace Catshakes
             }
 
             Instance = this;
+
+            if (unlockAllLevels)
+            {
+                Debug.LogWarning("GameSceneManager: 'Unlock All Levels' is ON (testing build). Turn it off before release.", this);
+            }
 
             // DontDestroyOnLoad only works on root objects.
             if (transform.parent != null)
@@ -164,13 +188,18 @@ namespace Catshakes
 
         public void LoadScene(SceneId scene)
         {
+            LoadScene(scene, fadeDuration);
+        }
+
+        private void LoadScene(SceneId scene, float fadeSeconds)
+        {
             if (IsTransitioning)
             {
                 return;
             }
 
             LastRequestedScene = scene;
-            StartCoroutine(LoadSceneRoutine(scene));
+            StartCoroutine(LoadSceneRoutine(scene, fadeSeconds));
         }
 
         /// <summary>Starts a level in normal mode. Locked levels are refused.</summary>
@@ -228,16 +257,22 @@ namespace Catshakes
             LevelCompleted?.Invoke();
         }
 
-        /// <summary>Loads the next level, or the level select scene after the last one.</summary>
+        /// <summary>Loads the next level, or the level select scene after the last one, through a slow fade to black.</summary>
         public void GoToNextLevel()
         {
-            if (!HasNextLevel)
+            if (IsTransitioning)
             {
-                ReturnToLevelSelect();
                 return;
             }
 
-            BeginLevel(CurrentLevelIndex + 1);
+            if (!HasNextLevel)
+            {
+                IsSpeedrunActive = false;
+                LoadScene(SceneId.LevelSelect, levelTransitionFadeDuration);
+                return;
+            }
+
+            BeginLevel(CurrentLevelIndex + 1, levelTransitionFadeDuration);
         }
 
         public void ReturnToLevelSelect()
@@ -289,10 +324,15 @@ namespace Catshakes
 
         private void BeginLevel(int levelIndex)
         {
+            BeginLevel(levelIndex, fadeDuration);
+        }
+
+        private void BeginLevel(int levelIndex, float fadeSeconds)
+        {
             CurrentLevelIndex = levelIndex;
             levelCompletedPending = false;
             GameAnalytics.LevelStart(levelIndex, IsSpeedrunActive);
-            LoadScene(SceneId.Gameplay);
+            LoadScene(SceneId.Gameplay, fadeSeconds);
         }
 
         private void FinishSpeedrun()
@@ -336,32 +376,37 @@ namespace Catshakes
             }
         }
 
-        private IEnumerator LoadSceneRoutine(SceneId scene)
+        private IEnumerator LoadSceneRoutine(SceneId scene, float fadeSeconds)
         {
             IsTransitioning = true;
-            yield return Fade(1f);
+            yield return Fade(1f, fadeSeconds);
 
             AsyncOperation operation = SceneManager.LoadSceneAsync(GetSceneName(scene));
             if (operation == null)
             {
                 Debug.LogError("Could not load scene '" + GetSceneName(scene) + "'. Is it added to Build Settings?", this);
-                yield return Fade(0f);
+                yield return Fade(0f, fadeSeconds);
                 IsTransitioning = false;
                 yield break;
             }
 
-            while (!operation.isDone)
+            // The screen is fully black here. Wait for the load, and keep it black for a minimum time so a fast load does not flash.
+            float heldFor = 0f;
+            while (!operation.isDone || heldFor < minBlackHoldSeconds)
             {
+                heldFor += Time.unscaledDeltaTime;
                 yield return null;
             }
 
-            yield return Fade(0f);
+            // One frame so the new scene has drawn its first frame behind the black before it is revealed.
+            yield return null;
+            yield return Fade(0f, fadeSeconds);
             IsTransitioning = false;
         }
 
-        private IEnumerator Fade(float targetAlpha)
+        private IEnumerator Fade(float targetAlpha, float duration)
         {
-            if (fadeGroup == null || fadeDuration <= 0f)
+            if (fadeGroup == null || duration <= 0f)
             {
                 yield break;
             }
@@ -370,10 +415,11 @@ namespace Catshakes
             float startAlpha = fadeGroup.alpha;
             float elapsed = 0f;
 
-            while (elapsed < fadeDuration)
+            while (elapsed < duration)
             {
                 elapsed += Time.unscaledDeltaTime;
-                fadeGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, Mathf.Clamp01(elapsed / fadeDuration));
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+                fadeGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
                 yield return null;
             }
 

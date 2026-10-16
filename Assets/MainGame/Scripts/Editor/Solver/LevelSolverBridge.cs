@@ -162,6 +162,11 @@ namespace Catshakes.EditorTools
                         continue;
                     }
 
+                    if (!string.IsNullOrEmpty(text))
+                    {
+                        lines.Add(level.name + ": warning - " + text.Trim().Replace("\n", " | "));
+                    }
+
                     var sim = new PuzzleSim(ToSpec(level));
                     SolveResult result = PuzzleSolver.Solve(sim, new SolveOptions { MaxStates = 2000000, TimeLimitMs = 20000 });
                     SolutionStats stats = result.Status == SolveStatus.Solved ? PuzzleSolver.Replay(sim, result.Moves, null) : null;

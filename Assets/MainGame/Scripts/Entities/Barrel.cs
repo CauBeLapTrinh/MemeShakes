@@ -13,6 +13,99 @@ namespace Catshakes
 
         private Coroutine moveRoutine;
         private Coroutine appearRoutine;
+        private Coroutine crushRoutine;
+        private Vector3 restScale = Vector3.one;
+        private bool restScaleCaptured;
+
+        /// <summary>True once a closing door has crushed this crate. A crushed crate is hidden and not part of the board.</summary>
+        public bool IsCrushed { get; private set; }
+
+        private void Awake()
+        {
+            CaptureRestScale();
+        }
+
+        private void CaptureRestScale()
+        {
+            if (!restScaleCaptured)
+            {
+                restScaleCaptured = true;
+                restScale = transform.localScale;
+            }
+        }
+
+        /// <summary>Squashes the crate flat and hides it (a door closed on it). A zero duration hides it at once.</summary>
+        public void Crush(float duration)
+        {
+            if (IsCrushed)
+            {
+                return;
+            }
+
+            CaptureRestScale();
+            IsCrushed = true;
+            StopAllAnimations();
+
+            if (duration <= 0f || !isActiveAndEnabled)
+            {
+                gameObject.SetActive(false);
+                return;
+            }
+
+            crushRoutine = StartCoroutine(CrushRoutine(duration));
+        }
+
+        /// <summary>Brings a crushed crate back (Undo / Reset).</summary>
+        public void Restore()
+        {
+            if (!IsCrushed)
+            {
+                return;
+            }
+
+            IsCrushed = false;
+            StopAllAnimations();
+            transform.localScale = restScale;
+            gameObject.SetActive(true);
+        }
+
+        private void StopAllAnimations()
+        {
+            if (moveRoutine != null)
+            {
+                StopCoroutine(moveRoutine);
+                moveRoutine = null;
+            }
+
+            if (appearRoutine != null)
+            {
+                StopCoroutine(appearRoutine);
+                appearRoutine = null;
+            }
+
+            if (crushRoutine != null)
+            {
+                StopCoroutine(crushRoutine);
+                crushRoutine = null;
+            }
+        }
+
+        private IEnumerator CrushRoutine(float duration)
+        {
+            Vector3 full = restScale;
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                transform.localScale = new Vector3(full.x * (1f + 0.3f * t), full.y * (1f - t), full.z);
+                yield return null;
+            }
+
+            crushRoutine = null;
+            gameObject.SetActive(false);
+        }
 
         /// <summary>
         /// Replaces the look of this crate (used for severed hands, which behave exactly like a crate).

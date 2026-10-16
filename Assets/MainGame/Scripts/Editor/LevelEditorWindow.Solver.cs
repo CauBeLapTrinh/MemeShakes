@@ -225,7 +225,8 @@ namespace Catshakes.EditorTools
             if (stats.MomentaryPresses > 0) parts.Add("hold switch x" + stats.MomentaryPresses);
             if (stats.ToggleFlips > 0) parts.Add("toggle switch x" + stats.ToggleFlips);
             if (stats.DoorChanges > 0) parts.Add("doors change x" + stats.DoorChanges);
-            if (stats.Cuts > 0) parts.Add("arm cut x" + stats.Cuts);
+            if (stats.Cuts > 0) parts.Add("arm cut / pulled back x" + stats.Cuts);
+            if (stats.Crushes > 0) parts.Add("door crushes a crate x" + stats.Crushes);
             if (stats.CatPushes > 0) parts.Add("push the other cat x" + stats.CatPushes);
             if (stats.Retracts > 0) parts.Add("retract x" + stats.Retracts);
             return parts.Count == 0 ? "nothing special (hands just walk to each other)" : string.Join(", ", parts);

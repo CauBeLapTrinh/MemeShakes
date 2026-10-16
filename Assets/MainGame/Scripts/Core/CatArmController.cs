@@ -170,26 +170,20 @@ namespace Catshakes
         /// <summary>Z rotation in degrees of the hand sprite for the current arm.</summary>
         public float HandAngle => FacingAngle();
 
-        /// <summary>True when the hand tip or the arm's start cell is on <paramref name="cell"/> (these hold a door open).</summary>
-        public bool HoldsDoorAt(Vector2Int cell)
-        {
-            return armPath.Count > 0 && (HandPosition == cell || armPath[0] == cell);
-        }
-
         /// <summary>
-        /// Finds the arm index of <paramref name="cell"/> when the arm passes through it, i.e. the cell is neither the start
-        /// cell nor the tip. Only such a cell can be cut by a closing door.
+        /// Finds the arm index of <paramref name="cell"/> when a closing door there would cut the arm: any arm cell except the
+        /// start cell, which includes the tip. (The start cell never lies on a door; levels and pushes keep it off doors.)
         /// </summary>
         public bool TryFindPassThroughIndex(Vector2Int cell, out int index)
         {
             index = armPath.IndexOf(cell);
-            return index >= 1 && index < armPath.Count - 1;
+            return index >= 1;
         }
 
         /// <summary>
-        /// Cuts the arm at the door on arm index <paramref name="index"/>. Logically the arm is back at its start cell at once
-        /// (all steps refunded); visually the stump retracts cell by cell and a new hand grows at the start cell.
-        /// <see cref="IsPlayingCut"/> stays true until that is finished.
+        /// Cuts the arm at the door on arm index <paramref name="index"/> (the tip counts too). Logically the arm is back at
+        /// its start cell at once (all steps refunded); visually the stump retracts cell by cell and a new hand grows at the
+        /// start cell. <see cref="IsPlayingCut"/> stays true until that is finished.
         /// </summary>
         public void CutAt(int index)
         {

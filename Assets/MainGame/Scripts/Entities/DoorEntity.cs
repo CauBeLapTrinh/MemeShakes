@@ -4,7 +4,7 @@ namespace Catshakes
 {
     /// <summary>
     /// Door linked to switches by <see cref="LinkId"/>. <see cref="GridManager"/> decides when it is
-    /// open (a linked switch is active, or something is standing in the doorway) and calls <see cref="SetOpen"/>.
+    /// open (a linked switch is active; nothing standing in the doorway keeps it open) and calls <see cref="SetOpen"/>.
     /// </summary>
     public sealed class DoorEntity : GridEntity
     {

@@ -57,6 +57,53 @@ namespace Catshakes
             });
         }
 
+        /// <summary>A crate smashed flat by a closing door: wooden chips fly out sideways, with a cloud of dust and a few dark flecks.</summary>
+        public static void Smash(Vector3 position, float cellSize)
+        {
+            Burst(position, cellSize, new BurstSettings
+            {
+                ColorA = new Color(0.78f, 0.52f, 0.28f),
+                ColorB = new Color(0.45f, 0.29f, 0.15f),
+                Count = 18,
+                Speed = new Vector2(1.5f, 3.6f),
+                Lifetime = new Vector2(0.3f, 0.65f),
+                Size = new Vector2(0.06f, 0.12f),
+                Gravity = 1.8f,
+                Radius = 0.22f,
+                Direction = Vector2.up,
+                Spread = 360f
+            });
+
+            Burst(position, cellSize, new BurstSettings
+            {
+                ColorA = new Color(0.93f, 0.87f, 0.72f),
+                ColorB = new Color(0.7f, 0.64f, 0.52f),
+                Count = 12,
+                Speed = new Vector2(0.4f, 1.1f),
+                Lifetime = new Vector2(0.35f, 0.6f),
+                Size = new Vector2(0.08f, 0.14f),
+                Gravity = -0.05f,
+                Radius = 0.4f,
+                Direction = Vector2.up,
+                Spread = 360f,
+                Shrink = true
+            });
+
+            Burst(position, cellSize, new BurstSettings
+            {
+                ColorA = new Color(0.25f, 0.25f, 0.3f),
+                ColorB = new Color(0.1f, 0.1f, 0.12f),
+                Count = 5,
+                Speed = new Vector2(1f, 2f),
+                Lifetime = new Vector2(0.25f, 0.45f),
+                Size = new Vector2(0.04f, 0.07f),
+                Gravity = 2f,
+                Radius = 0.15f,
+                Direction = Vector2.up,
+                Spread = 360f
+            });
+        }
+
         /// <summary>Bright sparks where a closing door cuts an arm.</summary>
         public static void Sparks(Vector3 position, float cellSize)
         {

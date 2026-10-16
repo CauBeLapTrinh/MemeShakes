@@ -44,6 +44,7 @@ namespace Catshakes.Solver
         public int BarrelPushes;
         public int CatPushes;
         public int Cuts;
+        public int Crushes;
         public int ToggleFlips;
         public int MomentaryPresses;
         public int DoorChanges;
@@ -58,7 +59,7 @@ namespace Catshakes.Solver
                 int n = 0;
                 if (BarrelPushes > 0) n++;
                 if (CatPushes > 0) n++;
-                if (Cuts > 0) n++;
+                if (Cuts > 0 || Crushes > 0) n++;
                 if (ToggleFlips > 0) n++;
                 if (MomentaryPresses > 0) n++;
                 if (DoorChanges > 0) n++;
@@ -195,6 +196,7 @@ namespace Catshakes.Solver
                 if (ev.PushedBarrel) stats.BarrelPushes++;
                 if (ev.PushedCat) stats.CatPushes++;
                 stats.Cuts += ev.Cuts;
+                stats.Crushes += ev.Crushed;
                 stats.ToggleFlips += ev.ToggleFlips;
                 for (int k = 0; k < switchBefore.Length; k++)
                 {

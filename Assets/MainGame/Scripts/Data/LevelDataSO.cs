@@ -176,6 +176,7 @@ namespace Catshakes
                 }
             }
 
+            CheckDoors(warnings);
             CheckHandStart(CatId.CatA, warnings);
             CheckHandStart(CatId.CatB, warnings);
             if (GetHandStart(CatId.CatA) == GetHandStart(CatId.CatB))
@@ -201,6 +202,51 @@ namespace Catshakes
 
             report = errors.ToString() + warnings.ToString();
             return errors.Length == 0;
+        }
+
+        /// <summary>True when the cell has a wall on both sides, left and right or above and below. Doors may only stand there.</summary>
+        public bool IsBetweenWalls(Vector2Int cell)
+        {
+            bool left = false, right = false, up = false, down = false;
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                ObstacleData data = obstacles[i];
+                if (data.tileType != TileType.Wall)
+                {
+                    continue;
+                }
+
+                Vector2Int d = data.position - cell;
+                if (d == Vector2Int.left) left = true;
+                else if (d == Vector2Int.right) right = true;
+                else if (d == Vector2Int.up) up = true;
+                else if (d == Vector2Int.down) down = true;
+            }
+
+            return (left && right) || (up && down);
+        }
+
+        /// <summary>A door must stand between two walls (a closing door crushes whatever is in the doorway), and not under a hand start.</summary>
+        private void CheckDoors(StringBuilder warnings)
+        {
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                ObstacleData data = obstacles[i];
+                if (data.tileType != TileType.Door)
+                {
+                    continue;
+                }
+
+                if (!IsBetweenWalls(data.position))
+                {
+                    warnings.AppendLine("Door at " + data.position + " is not between two walls (a wall on both the left and right, or above and below).");
+                }
+
+                if (data.position == GetHandStart(CatId.CatA) || data.position == GetHandStart(CatId.CatB))
+                {
+                    warnings.AppendLine("Door at " + data.position + " is on the start cell of a hand.");
+                }
+            }
         }
 
         private void CheckHandStart(CatId id, StringBuilder warnings)
