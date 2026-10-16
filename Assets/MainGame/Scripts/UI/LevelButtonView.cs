@@ -52,7 +52,7 @@ namespace Catshakes
 
             if (label != null)
             {
-                label.text = levelIndex.ToString();
+                label.text = (levelIndex + 1).ToString();
                 labelRestPosition = label.rectTransform.anchoredPosition;
                 hasLabelRestPosition = true;
             }

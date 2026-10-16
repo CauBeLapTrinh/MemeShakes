@@ -24,7 +24,8 @@ namespace Catshakes
     ///  - When a door closes while an arm passes through it, the arm is cut: the part from the door on is removed,
     ///    the arm ends just in front of the door, and the old hand stays behind as a severed hand that acts like a barrel.
     ///  - When a door closes on a hand tip, the arm retracts the same way, but nothing is left behind (the hand is crushed).
-    ///  - A cat's body and the start cell of its arm are never pushed onto a door cell.
+    ///  - A cat can be pushed through an open doorway. If a door closes on its body or on the arm's start cell (the cell
+    ///    next to the body), the cat is crushed and the level is lost: the board locks and the scene flow reloads it.
     /// </summary>
     public sealed class GridManager : MonoBehaviour
     {
@@ -70,6 +71,7 @@ namespace Catshakes
         private CatId activeCat = CatId.CatA;
         private int moveCount;
         private bool isWon;
+        private bool isLost;
         private bool interactiveEventsMuted;
 
         /// <summary>Raised after a level has been built and is ready to play.</summary>
@@ -105,6 +107,12 @@ namespace Catshakes
         /// <summary>Raised when a closing door crushes a barrel or a severed hand during play (not on load, undo or reset). Argument: door cell.</summary>
         public event Action<Vector2Int> ObjectCrushed;
 
+        /// <summary>Raised for every cat part a closing door crushes (the body or the hand cell next to it). Arguments: cat, door cell.</summary>
+        public event Action<CatId, Vector2Int> CatCrushed;
+
+        /// <summary>Raised once when a door crushed a cat: the level is lost and the board is locked until it is reset.</summary>
+        public event Action Lost;
+
         /// <summary>Raised when a door opens or closes during play (not on load, undo or reset). Arguments: cell, open.</summary>
         public event Action<Vector2Int, bool> DoorChanged;
 
@@ -119,10 +127,13 @@ namespace Catshakes
         public bool IsLevelLoaded => currentLevel != null && coords != null;
         public bool IsWon => isWon;
 
+        /// <summary>True after a door crushed a cat. No move is accepted until the level is reset.</summary>
+        public bool IsLost => isLost;
+
         /// <summary>True while a cat is still playing the cut animation; moves are rejected until it is done.</summary>
         public bool IsBusy => cats != null && (cats[0].IsPlayingCut || cats[1].IsPlayingCut);
         public int MoveCount => moveCount;
-        public bool CanUndo => IsLevelLoaded && !isWon && undoStack.Count > 0;
+        public bool CanUndo => IsLevelLoaded && !isWon && !isLost && undoStack.Count > 0;
         public CatId ActiveCat => activeCat;
 
         private void Awake()
@@ -207,6 +218,7 @@ namespace Catshakes
 
             moveCount = 0;
             isWon = false;
+            isLost = false;
             undoStack.Clear();
             interactiveEventsMuted = true;
             RefreshInteractiveState();
@@ -250,6 +262,7 @@ namespace Catshakes
             initialSnapshot = null;
             moveCount = 0;
             isWon = false;
+            isLost = false;
         }
 
         /// <summary>Restores the initial state of the level and clears the undo history.</summary>
@@ -262,6 +275,7 @@ namespace Catshakes
 
             undoStack.Clear();
             isWon = false;
+            isLost = false;
             ApplySnapshot(initialSnapshot);
             StateChanged?.Invoke();
         }
@@ -377,7 +391,7 @@ namespace Catshakes
 
         private MoveOutcome ResolveMove(CatArmController cat, Vector2Int direction)
         {
-            if (!IsLevelLoaded || isWon || IsBusy)
+            if (!IsLevelLoaded || isWon || isLost || IsBusy)
             {
                 return MoveOutcome.BlockedInputLocked;
             }
@@ -498,10 +512,9 @@ namespace Catshakes
         /// <summary>Can <paramref name="cat"/> (body and every arm cell) move one cell in <paramref name="direction"/>?</summary>
         private bool CanCatShift(CatArmController cat, Vector2Int direction, CatArmController pusher)
         {
-            // The body and the start cell of the arm can never stand in a doorway: a door cannot cut them.
-            if (cat.IsPlayingCut
-                || !CanCatEnterCell(cat.RootPosition + direction, pusher)
-                || doorsByCell.ContainsKey(cat.RootPosition + direction))
+            // An open doorway is fine (the body or the arm start cell may be pushed into it); a closed one blocks the push.
+            // If the door shuts while the body or the arm start cell is in it, the cat is crushed (see CrushCatsAtClosedDoors).
+            if (cat.IsPlayingCut || !CanCatEnterCell(cat.RootPosition + direction, pusher))
             {
                 return false;
             }
@@ -509,8 +522,7 @@ namespace Catshakes
             IReadOnlyList<Vector2Int> path = cat.ArmPath;
             for (int i = 0; i < path.Count; i++)
             {
-                Vector2Int next = path[i] + direction;
-                if (!CanCatEnterCell(next, pusher) || (i == 0 && doorsByCell.ContainsKey(next)))
+                if (!CanCatEnterCell(path[i] + direction, pusher))
                 {
                     return false;
                 }
@@ -617,6 +629,12 @@ namespace Catshakes
 
             StateChanged?.Invoke();
 
+            if (isLost)
+            {
+                Lost?.Invoke();
+                return;
+            }
+
             if (handsMet)
             {
                 isWon = true;
@@ -636,6 +654,12 @@ namespace Catshakes
             for (int pass = 0; pass < maxPasses; pass++)
             {
                 UpdateSwitchesAndDoors();
+
+                // A door shutting on a cat's body or on the hand next to it ends the level at once.
+                if (!interactiveEventsMuted && CrushCatsAtClosedDoors())
+                {
+                    return;
+                }
 
                 // Both run every pass; crushing a barrel or cutting an arm can release a switch and change the doors again.
                 bool crushed = CrushObjectsAtClosedDoors();
@@ -698,6 +722,41 @@ namespace Catshakes
         }
 
         // ---------------------------------------------------------------- crushing and arm cutting
+
+        /// <summary>
+        /// A cat can be pushed through an open doorway. If the door closes while its body, or the first arm cell right
+        /// next to the body, is in the doorway, the cat is crushed and the level is lost. Returns true when that happened.
+        /// </summary>
+        private bool CrushCatsAtClosedDoors()
+        {
+            var crushed = new List<KeyValuePair<CatId, Vector2Int>>();
+            for (int c = 0; c < cats.Length; c++)
+            {
+                CatArmController cat = cats[c];
+                if (IsClosedDoor(cat.RootPosition))
+                {
+                    crushed.Add(new KeyValuePair<CatId, Vector2Int>(cat.Id, cat.RootPosition));
+                }
+
+                if (cat.ArmPath.Count > 0 && IsClosedDoor(cat.ArmPath[0]))
+                {
+                    crushed.Add(new KeyValuePair<CatId, Vector2Int>(cat.Id, cat.ArmPath[0]));
+                }
+            }
+
+            if (crushed.Count == 0)
+            {
+                return false;
+            }
+
+            isLost = true;
+            for (int i = 0; i < crushed.Count; i++)
+            {
+                CatCrushed?.Invoke(crushed[i].Key, crushed[i].Value);
+            }
+
+            return true;
+        }
 
         /// <summary>A closed door crushes every barrel and severed hand in its doorway. Returns true when something was crushed.</summary>
         private bool CrushObjectsAtClosedDoors()

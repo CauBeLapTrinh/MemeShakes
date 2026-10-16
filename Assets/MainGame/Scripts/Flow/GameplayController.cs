@@ -36,7 +36,11 @@ namespace Catshakes
         [SerializeField] private Color catASparkleColor = new Color(1f, 0.7f, 0.25f);
         [SerializeField] private Color catBSparkleColor = new Color(0.4f, 0.75f, 1f);
 
+        [Tooltip("How long the crushed cat stays on screen before the screen fades out and the level reloads.")]
+        [SerializeField, Min(0f)] private float loseDelay = 0.8f;
+
         private Coroutine winRoutine;
+        private Coroutine loseRoutine;
         private GameObject handshakeObject;
 
         private void OnEnable()
@@ -49,6 +53,8 @@ namespace Catshakes
                 gridManager.ObjectPushed += HandleObjectPushed;
                 gridManager.ArmCutAtCell += HandleArmCut;
                 gridManager.ObjectCrushed += HandleObjectCrushed;
+                gridManager.CatCrushed += HandleCatCrushed;
+                gridManager.Lost += HandleLost;
                 gridManager.SwitchChanged += HandleSwitchChanged;
                 gridManager.DoorChanged += HandleDoorChanged;
                 gridManager.CatSwitched += HandleCatSwitched;
@@ -65,6 +71,8 @@ namespace Catshakes
                 gridManager.ObjectPushed -= HandleObjectPushed;
                 gridManager.ArmCutAtCell -= HandleArmCut;
                 gridManager.ObjectCrushed -= HandleObjectCrushed;
+                gridManager.CatCrushed -= HandleCatCrushed;
+                gridManager.Lost -= HandleLost;
                 gridManager.SwitchChanged -= HandleSwitchChanged;
                 gridManager.DoorChanged -= HandleDoorChanged;
                 gridManager.CatSwitched -= HandleCatSwitched;
@@ -173,6 +181,51 @@ namespace Catshakes
             if (playPixelEffects)
             {
                 PixelFx.Smash(CellWorld(cell), CellSize);
+            }
+        }
+
+        private void HandleCatCrushed(CatId id, Vector2Int cell)
+        {
+            gridManager.GetCat(id).PlayCrushed(0.18f);
+            if (playPixelEffects)
+            {
+                PixelFx.Smash(CellWorld(cell), CellSize);
+            }
+        }
+
+        private void HandleLost()
+        {
+            if (loseRoutine != null)
+            {
+                StopCoroutine(loseRoutine);
+            }
+
+            loseRoutine = StartCoroutine(LoseSequence());
+        }
+
+        /// <summary>A door crushed a cat: show the squash for a moment, then fade out and load the level again.</summary>
+        private IEnumerator LoseSequence()
+        {
+            yield return new WaitForSecondsRealtime(loseDelay);
+            loseRoutine = null;
+
+            if (!gridManager.IsLost)
+            {
+                yield break;
+            }
+
+            GameSceneManager manager = GameSceneManager.Instance;
+            if (manager == null)
+            {
+                // Scene started on its own in the Editor: no fade layer, just reset the board.
+                gridManager.ResetLevel();
+                yield break;
+            }
+
+            if (!manager.IsTransitioning && manager.CurrentScene == SceneId.Gameplay)
+            {
+                GameAnalytics.LevelRestart(manager.CurrentLevelIndex, gridManager.MoveCount);
+                manager.ReloadLevel();
             }
         }
 

@@ -333,6 +333,7 @@ namespace Catshakes
             grid.MoveResolved += HandleMoveResolved;
             grid.ArmCut += HandleArmCut;
             grid.ObjectCrushed += HandleObjectCrushed;
+            grid.CatCrushed += HandleCatCrushed;
             grid.Won += HandleWon;
             grid.CatSwitched += HandleCatSwitched;
             grid.DoorChanged += HandleDoorChanged;
@@ -344,6 +345,7 @@ namespace Catshakes
             grid.MoveResolved -= HandleMoveResolved;
             grid.ArmCut -= HandleArmCut;
             grid.ObjectCrushed -= HandleObjectCrushed;
+            grid.CatCrushed -= HandleCatCrushed;
             grid.Won -= HandleWon;
             grid.CatSwitched -= HandleCatSwitched;
             grid.DoorChanged -= HandleDoorChanged;
@@ -390,6 +392,12 @@ namespace Catshakes
 
         // A door closing on a crate sounds like a cut.
         private void HandleObjectCrushed(Vector2Int cell)
+        {
+            lastPriorityFrame = Time.frameCount;
+            PlayInternal(SoundId.Cut);
+        }
+
+        private void HandleCatCrushed(CatId cat, Vector2Int cell)
         {
             lastPriorityFrame = Time.frameCount;
             PlayInternal(SoundId.Cut);

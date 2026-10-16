@@ -174,7 +174,7 @@ namespace Catshakes
             // The level number as on the level select buttons; the level's own name when the scene runs on its own.
             GameSceneManager manager = GameSceneManager.Instance;
             levelNameText.text = manager != null
-                ? string.Format(levelNumberFormat, manager.CurrentLevelIndex)
+                ? string.Format(levelNumberFormat, manager.CurrentLevelIndex + 1)
                 : gridManager.CurrentLevel.DisplayName;
         }
 
@@ -339,6 +339,12 @@ namespace Catshakes
         private void HandleResetClicked()
         {
             GameSceneManager manager = GameSceneManager.Instance;
+            if (gridManager.IsLost)
+            {
+                // A door crushed a cat: the level reloads by itself in a moment.
+                return;
+            }
+
             if (gridManager.IsWon && manager != null && (winPanel == null || !winPanel.activeSelf))
             {
                 // The level is already solved and the next one is about to load.

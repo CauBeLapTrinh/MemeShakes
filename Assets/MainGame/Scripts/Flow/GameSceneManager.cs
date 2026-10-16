@@ -275,6 +275,17 @@ namespace Catshakes
             BeginLevel(CurrentLevelIndex + 1, levelTransitionFadeDuration);
         }
 
+        /// <summary>Loads the current level again through the fade (the player lost it). Progress and the Speedrun timer carry on.</summary>
+        public void ReloadLevel()
+        {
+            if (IsTransitioning)
+            {
+                return;
+            }
+
+            BeginLevel(CurrentLevelIndex, levelTransitionFadeDuration);
+        }
+
         public void ReturnToLevelSelect()
         {
             IsSpeedrunActive = false;

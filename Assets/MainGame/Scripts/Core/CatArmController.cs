@@ -251,6 +251,54 @@ namespace Catshakes
             pulseRoutine = StartCoroutine(PulseRoutine(duration));
         }
 
+        /// <summary>
+        /// Squashes the cat flat (a door closed on its body or on the hand next to it) and keeps it flat until the next
+        /// restore. <paramref name="duration"/> is the time the squash takes.
+        /// </summary>
+        public void PlayCrushed(float duration)
+        {
+            if (!isActiveAndEnabled || duration <= 0f)
+            {
+                return;
+            }
+
+            if (pulseRoutine != null)
+            {
+                StopCoroutine(pulseRoutine);
+            }
+
+            pulseRoutine = StartCoroutine(CrushedRoutine(duration));
+        }
+
+        private IEnumerator CrushedRoutine(float duration)
+        {
+            EnsureBaseScales();
+            float elapsed = 0f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float squash = 1f - 0.9f * t * t;
+                Vector3 bodyScale = new Vector3(bodyBaseScale.x * (1f + 0.35f * t), bodyBaseScale.y * squash, bodyBaseScale.z);
+                Vector3 handScale = new Vector3(handBaseScale.x * (1f + 0.35f * t), handBaseScale.y * squash, handBaseScale.z);
+
+                if (handVisual != null)
+                {
+                    handVisual.localScale = handScale;
+                }
+
+                if (bodyVisual != null)
+                {
+                    bodyVisual.localScale = bodyScale;
+                }
+
+                yield return null;
+            }
+
+            pulseRoutine = null;
+        }
+
         /// <summary>True when <paramref name="cell"/> is the cell the hand would retract into.</summary>
         public bool IsRetractTarget(Vector2Int cell)
         {

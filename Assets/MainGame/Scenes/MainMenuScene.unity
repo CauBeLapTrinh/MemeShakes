@@ -225,7 +225,6 @@ MonoBehaviour:
   levelSelectSceneName: MainMenuScene
   gameplaySceneName: GameplayScene
   levels:
-  - {fileID: 11400000, guid: f35dd6564ea74a247bd35a92d3ce9e81, type: 2}
   - {fileID: 11400000, guid: f174cd0750463814ebf2ee90213c5cf3, type: 2}
   - {fileID: 11400000, guid: baa13fd6d12245845b3f260e9539f2f7, type: 2}
   - {fileID: 11400000, guid: 3f5cfbed1c39bd94298cf18f534dc828, type: 2}
@@ -255,6 +254,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f9c79a4e36be68f46bde1eca34714fb8, type: 2}
   - {fileID: 11400000, guid: 4c1ae6ca266c1e442a23d5ab5508c394, type: 2}
   - {fileID: 11400000, guid: a30a489b2f5c366408b1b8598ef7ef08, type: 2}
+  - {fileID: 11400000, guid: 02627efeb7d62ac45b7bac3c9f960e93, type: 2}
   unlockAllLevels: 1
   fadeGroup: {fileID: 970321094}
   fadeDuration: 0.25

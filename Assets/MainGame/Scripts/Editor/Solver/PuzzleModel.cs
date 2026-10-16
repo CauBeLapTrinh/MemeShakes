@@ -151,6 +151,9 @@ namespace Catshakes.Solver
         public bool Won;
         public bool Overflow;
 
+        /// <summary>A door shut on a cat's body or on the arm cell next to it: the level is lost, so the move that caused it is illegal.</summary>
+        public bool Lost;
+
         public int Hand(int cat)
         {
             return Arm[cat][Len[cat] - 1];
@@ -226,6 +229,7 @@ namespace Catshakes.Solver
             Array.Copy(o.DoorOpen, DoorOpen, o.DoorOpen.Length);
             Won = o.Won;
             Overflow = false;
+            Lost = false;
         }
     }
 
@@ -390,6 +394,7 @@ namespace Catshakes.Solver
             s.Toggles = t;
             s.Won = false;
             s.Overflow = false;
+            s.Lost = false;
             UpdateSwitchesAndDoors(s);
         }
 
@@ -414,7 +419,7 @@ namespace Catshakes.Solver
                 s.Len[cat] = len - 1;
                 ev.Retracted = true;
                 Commit(s, ref ev);
-                return !s.Overflow;
+                return !s.Overflow && !s.Lost;
             }
 
             if (len - 1 >= MaxSteps[cat]) return false;
@@ -462,7 +467,7 @@ namespace Catshakes.Solver
             if (!handshake) FlipToggleAt(s, target, ref ev);
 
             Commit(s, ref ev);
-            return !s.Overflow;
+            return !s.Overflow && !s.Lost;
         }
 
         private bool IsClosedDoor(PuzzleState s, int cell)
@@ -473,14 +478,13 @@ namespace Catshakes.Solver
 
         private bool CanCatShift(PuzzleState s, int cat, int dir, int pusher)
         {
-            // The body and the start cell of the arm are never pushed onto a door cell (open or closed).
+            // An open doorway may be entered; a door that shuts on the body or the arm start cell loses the level (Refresh).
             int rootTarget = Neighbor[s.Root[cat] * 4 + dir];
-            if (!CanCatEnterCell(s, rootTarget, pusher) || DoorAt[rootTarget] >= 0) return false;
+            if (!CanCatEnterCell(s, rootTarget, pusher)) return false;
             for (int i = 0; i < s.Len[cat]; i++)
             {
                 int next = Neighbor[s.Arm[cat][i] * 4 + dir];
                 if (!CanCatEnterCell(s, next, pusher)) return false;
-                if (i == 0 && DoorAt[next] >= 0) return false;
             }
 
             return true;
@@ -592,6 +596,12 @@ namespace Catshakes.Solver
             for (int pass = 0; pass < 16; pass++)
             {
                 UpdateSwitchesAndDoors(s);
+                if (CatsCrushed(s))
+                {
+                    s.Lost = true;
+                    return;
+                }
+
                 bool crushed = CrushBarrels(s, ref ev);
                 bool cut = CutArms(s, ref ev);
                 if (!crushed && !cut) return;
@@ -637,6 +647,17 @@ namespace Catshakes.Solver
                 // Standing in the doorway does not keep a door open.
                 s.DoorOpen[d] = linkActive != door.StartsOpen;
             }
+        }
+
+        /// <summary>True when a closed door sits on a cat's body or on the arm cell next to it.</summary>
+        private bool CatsCrushed(PuzzleState s)
+        {
+            for (int cat = 0; cat < 2; cat++)
+            {
+                if (IsClosedDoor(s, s.Root[cat]) || IsClosedDoor(s, s.Arm[cat][0])) return true;
+            }
+
+            return false;
         }
 
         /// <summary>A closed door crushes the barrels and severed hands in its doorway.</summary>
