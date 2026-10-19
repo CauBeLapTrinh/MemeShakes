@@ -39,6 +39,17 @@ namespace Catshakes
         [Header("Prefabs")]
         [SerializeField] private GameObject floorTilePrefab;
         [SerializeField] private GameObject wallPrefab;
+
+        [Header("Wall borders (edges facing outside the board)")]
+        [Tooltip("Border on one side (drawn on the top edge, turned to fit). Leave all four empty to keep plain walls.")]
+        [SerializeField] private Sprite wallSingleEdge;
+        [Tooltip("Border on two neighbouring sides (drawn on the top and left edges).")]
+        [SerializeField] private Sprite wallOuterCorner;
+        [Tooltip("Border on two opposite sides (drawn on the top and bottom edges).")]
+        [SerializeField] private Sprite wallStraight;
+        [Tooltip("Border on three sides (drawn on the left, top and bottom edges; open to the right).")]
+        [SerializeField] private Sprite wallEndCap;
+
         [SerializeField] private Barrel barrelPrefab;
         [Tooltip("Optional. Prefab of the severed hand (a Barrel component). When empty, the barrel prefab is used with the cat's hand sprite.")]
         [SerializeField] private Barrel severedHandPrefab;
@@ -1015,9 +1026,101 @@ namespace Catshakes
             return true;
         }
 
+        /// <summary>True when the cell is outside the board or is not a wall (floor, door, switch...).</summary>
+        private bool IsOpenGround(Vector2Int cell)
+        {
+            return !coords.IsInside(cell) || !walls.Contains(cell);
+        }
+
+        /// <summary>
+        /// Gives a wall the border picture that matches the sides where it meets open ground. One side, two neighbouring
+        /// sides (corner), two opposite sides or three sides (end cap) get a picture; a wall buried among walls (or
+        /// a lone pillar with four open sides) keeps the plain look. The pictures are drawn with the border on fixed edges
+        /// and turned or flipped here. Call it once every wall of the level is known.
+        /// </summary>
+        private void ApplyWallBorder(GameObject wall, Vector2Int cell)
+        {
+            bool up = IsOpenGround(cell + Vector2Int.up);
+            bool down = IsOpenGround(cell + Vector2Int.down);
+            bool left = IsOpenGround(cell + Vector2Int.left);
+            bool right = IsOpenGround(cell + Vector2Int.right);
+            int sides = (up ? 1 : 0) + (down ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
+            if (sides == 0 || sides == 4)
+            {
+                return;
+            }
+
+            Sprite sprite = null;
+            float angle = 0f;
+            bool flipX = false;
+            bool flipY = false;
+
+            switch (sides)
+            {
+                case 1:
+                    sprite = wallSingleEdge;
+                    angle = up ? 0f : left ? 90f : down ? 180f : 270f;
+                    break;
+
+                case 2:
+                    if (up && down)
+                    {
+                        sprite = wallStraight;
+                    }
+                    else if (left && right)
+                    {
+                        sprite = wallStraight;
+                        angle = 90f;
+                    }
+                    else
+                    {
+                        sprite = wallOuterCorner;
+                        flipX = right;
+                        flipY = down;
+                    }
+
+                    break;
+
+                case 3:
+                    // Drawn open to the right; the open side is the one that faces into the board.
+                    sprite = wallEndCap;
+                    if (!right)
+                    {
+                        angle = 0f;
+                    }
+                    else if (!left)
+                    {
+                        flipX = true;
+                    }
+                    else if (!up)
+                    {
+                        angle = 90f;
+                    }
+                    else
+                    {
+                        angle = 270f;
+                    }
+
+                    break;
+            }
+
+            SpriteRenderer spriteRenderer = wall.GetComponent<SpriteRenderer>();
+            if (sprite == null || spriteRenderer == null)
+            {
+                return;
+            }
+
+            spriteRenderer.sprite = sprite;
+            spriteRenderer.color = Color.white;
+            spriteRenderer.flipX = flipX;
+            spriteRenderer.flipY = flipY;
+            wall.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        }
+
         private bool BuildObstacles(LevelDataSO level)
         {
             IReadOnlyList<ObstacleData> obstacles = level.Obstacles;
+            var wallObjects = new List<KeyValuePair<Vector2Int, GameObject>>();
 
             for (int i = 0; i < obstacles.Count; i++)
             {
@@ -1034,6 +1137,7 @@ namespace Catshakes
 
                         walls.Add(data.position);
                         GameObject wall = Instantiate(wallPrefab, coords.GridToWorld(data.position), Quaternion.identity, levelRoot);
+                        wallObjects.Add(new KeyValuePair<Vector2Int, GameObject>(data.position, wall));
                         spawnedObjects.Add(wall);
                         break;
                     }
@@ -1091,6 +1195,12 @@ namespace Catshakes
                         break;
                     }
                 }
+            }
+
+            // Borders depend on the neighbours, so they are drawn once every wall is placed.
+            for (int i = 0; i < wallObjects.Count; i++)
+            {
+                ApplyWallBorder(wallObjects[i].Value, wallObjects[i].Key);
             }
 
             return true;
