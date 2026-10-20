@@ -42,6 +42,10 @@ namespace Catshakes
         [SerializeField] private Image speedRunImage;
         [SerializeField] private Sprite speedRunLockedSprite;
         [SerializeField] private Sprite speedRunUnlockedSprite;
+        [Tooltip("Floats up from the Speed Run button when it is tapped while still locked.")]
+        [SerializeField] private string speedRunLockedText = "Unlocked upon completing all levels";
+        [Tooltip("How long that text stays on screen, in seconds.")]
+        [SerializeField, Min(0.5f)] private float speedRunLockedTextSeconds = 2.5f;
 
         [Header("Level select")]
         [SerializeField] private LevelSelectGrid levelGrid;
@@ -161,6 +165,7 @@ namespace Catshakes
 
                 shakeRoutine = StartCoroutine(ShakeRoutine((RectTransform)speedRunImage.transform));
                 SoundManager.Play(SoundId.Locked);
+                UIFx.FloatingText((RectTransform)speedRunImage.transform, speedRunLockedText, UIFx.TextColor, 46f, speedRunLockedTextSeconds);
                 return;
             }
 

@@ -83,7 +83,7 @@ namespace Catshakes
         }
 
         /// <summary>A label that rises from <paramref name="target"/> and fades out.</summary>
-        public static void FloatingText(RectTransform target, string text, Color color, float fontSize = 46f)
+        public static void FloatingText(RectTransform target, string text, Color color, float fontSize = 46f, float lifetime = 1.3f)
         {
             RectTransform layer = OverlayLayer(target);
             if (layer == null)
@@ -102,12 +102,13 @@ namespace Catshakes
             label.fontSize = fontSize;
             label.fontStyle = FontStyles.Bold;
             label.alignment = TextAlignmentOptions.Center;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
             label.color = color;
             label.raycastTarget = false;
             label.outlineWidth = 0.3f;
             label.outlineColor = new Color32(40, 30, 20, 255);
 
-            GetRunner().StartCoroutine(FloatRoutine(rect, label, 1.3f));
+            GetRunner().StartCoroutine(FloatRoutine(rect, label, lifetime));
         }
 
         // ---------------------------------------------------------------- routines
