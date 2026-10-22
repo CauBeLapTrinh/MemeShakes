@@ -222,9 +222,109 @@ MonoBehaviour:
     position: {x: 8, y: 3}
     linkId: 1
     initiallyOn: 0
-  asciiLayout: '###....#####
+  - tileType: 6
+    position: {x: 11, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 10, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 10, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 11, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 11, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 10, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 9, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 8, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 7, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 2, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 2, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 1, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 1, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 3, y: 7}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 3, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 4, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 5, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 7}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 5, y: 7}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 4, y: 7}
+    linkId: 0
+    initiallyOn: 0
+  asciiLayout: '###~~~~#####
 
-    #P#....#...#
+    #P#~~~~#...#
 
     #.######.#.#
 
@@ -232,11 +332,11 @@ MonoBehaviour:
 
     ##.O...#A###
 
-    .###.#...#..
+    ~###.#...#~~
 
-    ...#a#####..
+    ~~~#a#####~~
 
-    ...###......
+    ~~~###~~~~~~
 
     @A=D
     B=U'

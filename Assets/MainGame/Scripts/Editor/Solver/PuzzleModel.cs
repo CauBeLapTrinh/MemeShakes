@@ -116,7 +116,22 @@ namespace Catshakes.Solver
             }
 
             sb.Append("@A=").Append(FacingLetter(Facing[0])).Append(" B=").Append(FacingLetter(Facing[1]));
+
+            var on = new List<int>();
+            for (int i = 0; i < Switches.Count; i++) if (Switches[i].Toggle && Switches[i].StartsOn) on.Add(Switches[i].Cell);
+            var open = new List<int>();
+            for (int i = 0; i < Doors.Count; i++) if (Doors[i].StartsOpen) open.Add(Doors[i].Cell);
+            AppendMarks(sb, "ON", on);
+            AppendMarks(sb, "OPEN", open);
             return sb.ToString();
+        }
+
+        /// <summary>Adds "@LABEL=col,row ..." (column from the left, row from the top, both from 1) when there is any cell.</summary>
+        private void AppendMarks(StringBuilder sb, string label, IEnumerable<int> cells)
+        {
+            var marks = new List<string>();
+            foreach (int c in cells) marks.Add((c % Width + 1) + "," + (Height - c / Width));
+            if (marks.Count > 0) sb.Append("\n@").Append(label).Append('=').Append(string.Join(" ", marks));
         }
 
         public static string FacingLetter(int d)

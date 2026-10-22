@@ -22,7 +22,7 @@ MonoBehaviour:
   catAFacing: 2
   catBFacing: 3
   obstacles:
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -110,7 +110,7 @@ MonoBehaviour:
     position: {x: 9, y: 3}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 4}
     linkId: 0
     initiallyOn: 0
@@ -142,7 +142,7 @@ MonoBehaviour:
     position: {x: 9, y: 4}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 5}
     linkId: 0
     initiallyOn: 0
@@ -154,15 +154,15 @@ MonoBehaviour:
     position: {x: 7, y: 5}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 8, y: 5}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 9, y: 5}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 6}
     linkId: 0
     initiallyOn: 0
@@ -174,15 +174,15 @@ MonoBehaviour:
     position: {x: 7, y: 6}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 8, y: 6}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 9, y: 6}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 7}
     linkId: 0
     initiallyOn: 0
@@ -214,11 +214,11 @@ MonoBehaviour:
     position: {x: 7, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 8, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 9, y: 7}
     linkId: 0
     initiallyOn: 0
@@ -254,13 +254,13 @@ MonoBehaviour:
     position: {x: 5, y: 4}
     linkId: 1
     initiallyOn: 0
-  asciiLayout: '##########
+  asciiLayout: '~#######~~
 
-    ##....3###
+    ~#....3#~~
 
-    ##..2.4###
+    ~#..2.4#~~
 
-    ##.##A####
+    ~#.##A####
 
     ##.#.....#
 
@@ -268,7 +268,8 @@ MonoBehaviour:
 
     ##..BCD..#
 
-    ##########
+    ~#########
 
     @A=L
     B=R'
+  solutionText: 

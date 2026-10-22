@@ -56,7 +56,7 @@ namespace Catshakes
         [SerializeField] private List<ObstacleData> obstacles = new List<ObstacleData>();
 
         [Header("Quick authoring (right-click this asset > Import From ASCII Layout)")]
-        [Tooltip("Legend: # wall | . empty | P cat A | Q cat B | O barrel | 1-9 Switch_1 (momentary, linkId = digit) | a-i Switch_2 (toggle, a=1..i=9) | A-I door (A=1..I=9). The first text line is the TOP row. Optional last line '@A=R B=L' sets the facing (U/D/L/R) of each cat.")]
+        [Tooltip("Legend: # wall | ~ void (nothing drawn, blocks like a wall) | . empty | P cat A | Q cat B | O barrel | 1-9 Switch_1 (momentary, linkId = digit) | a-i Switch_2 (toggle, a=1..i=9) | A-I door (A=1..I=9). The first text line is the TOP row. Optional last lines: '@A=R B=L' sets the facing (U/D/L/R) of each cat (its hand starts on the neighbouring cell in that direction); '@ON=2,3 5,1' lists toggle switches that start ON and '@OPEN=6,2' lists doors that start open, as column,row counted from 1 (column from the left, row from the top).")]
         [SerializeField, TextArea(6, 20)] private string asciiLayout = string.Empty;
 
         [Header("Solution (written by the Level Editor solver, e.g. \"A:RRU B:LL\")")]
@@ -204,14 +204,40 @@ namespace Catshakes
             return errors.Length == 0;
         }
 
-        /// <summary>True when the cell has a wall on both sides, left and right or above and below. Doors may only stand there.</summary>
+        private bool IsSolidCell(Vector2Int cell)
+        {
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                ObstacleData data = obstacles[i];
+                if (data.position == cell && (data.tileType == TileType.Wall || data.tileType == TileType.Void))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>A barrel with a wall (or void) on at least one side of each axis can never be pushed, so it acts as a wall.</summary>
+        private bool IsFrozenBarrel(Vector2Int cell)
+        {
+            return (IsSolidCell(cell + Vector2Int.left) || IsSolidCell(cell + Vector2Int.right))
+                && (IsSolidCell(cell + Vector2Int.up) || IsSolidCell(cell + Vector2Int.down));
+        }
+
+        /// <summary>
+        /// True when the cell has a wall on both sides, left and right or above and below. Doors may only stand there.
+        /// A barrel that is stuck for good (see <see cref="IsFrozenBarrel"/>) counts as a wall.
+        /// </summary>
         public bool IsBetweenWalls(Vector2Int cell)
         {
             bool left = false, right = false, up = false, down = false;
             for (int i = 0; i < obstacles.Count; i++)
             {
                 ObstacleData data = obstacles[i];
-                if (data.tileType != TileType.Wall)
+                bool solid = data.tileType == TileType.Wall || data.tileType == TileType.Void
+                    || (data.tileType == TileType.Barrel && IsFrozenBarrel(data.position));
+                if (!solid)
                 {
                     continue;
                 }
@@ -268,7 +294,7 @@ namespace Catshakes
             for (int i = 0; i < obstacles.Count; i++)
             {
                 ObstacleData data = obstacles[i];
-                if (data.position == hand && (data.tileType == TileType.Wall || data.tileType == TileType.Barrel))
+                if (data.position == hand && (data.tileType == TileType.Wall || data.tileType == TileType.Void || data.tileType == TileType.Barrel))
                 {
                     warnings.AppendLine(cat + "'s hand starts on a " + data.tileType + " at " + hand + ".");
                     return;
@@ -342,8 +368,11 @@ namespace Catshakes
                 return false;
             }
 
-            // Lines starting with '@' hold the cat facings (e.g. "@A=R B=L"); every other line is a grid row.
+            // Lines starting with '@' hold the cat facings (e.g. "@A=R B=L") and the start states ("@ON=2,3 5,1" for toggle
+            // switches that start ON, "@OPEN=6,2" for doors that start open); every other line is a grid row.
             var rawLines = new List<string>();
+            var onMarks = new List<Vector2Int>();
+            var openMarks = new List<Vector2Int>();
             Direction facingA = catAFacing;
             Direction facingB = catBFacing;
             foreach (string rawLine in asciiLayout.Replace("\r", string.Empty).Split('\n'))
@@ -352,6 +381,17 @@ namespace Catshakes
                 if (!trimmed.StartsWith("@", StringComparison.Ordinal))
                 {
                     rawLines.Add(rawLine);
+                    continue;
+                }
+
+                bool isMarkLine;
+                if (!TryParseMarkLine(trimmed.Substring(1), onMarks, openMarks, out isMarkLine, out error))
+                {
+                    return false;
+                }
+
+                if (isMarkLine)
+                {
                     continue;
                 }
 
@@ -400,6 +440,10 @@ namespace Catshakes
                     if (c == '#')
                     {
                         parsedObstacles.Add(new ObstacleData(TileType.Wall, cell));
+                    }
+                    else if (c == '~')
+                    {
+                        parsedObstacles.Add(new ObstacleData(TileType.Void, cell));
                     }
                     else if (c == 'P')
                     {
@@ -453,6 +497,12 @@ namespace Catshakes
                 return false;
             }
 
+            if (!ApplyMarks(parsedObstacles, onMarks, TileType.SwitchToggle, "ON", parsedHeight, out error)
+                || !ApplyMarks(parsedObstacles, openMarks, TileType.Door, "OPEN", parsedHeight, out error))
+            {
+                return false;
+            }
+
             width = Mathf.Max(2, parsedWidth);
             height = Mathf.Max(2, parsedHeight);
             catAStart = startA;
@@ -460,6 +510,83 @@ namespace Catshakes
             catAFacing = facingA;
             catBFacing = facingB;
             obstacles = parsedObstacles;
+            return true;
+        }
+
+        /// <summary>
+        /// Parses the body of a start-state line: "ON=2,3 5,1" (toggle switches that start ON) or "OPEN=6,2" (doors that start open).
+        /// Each cell is "column,row", both counted from 1, the column from the left and the row from the top of the text grid.
+        /// <paramref name="isMarkLine"/> is false for any other line (a facing line).
+        /// </summary>
+        private static bool TryParseMarkLine(string body, List<Vector2Int> onMarks, List<Vector2Int> openMarks, out bool isMarkLine, out string error)
+        {
+            error = string.Empty;
+            isMarkLine = false;
+            string upper = body.Trim().ToUpperInvariant();
+            List<Vector2Int> target;
+            string rest;
+            if (upper.StartsWith("ON=", StringComparison.Ordinal))
+            {
+                target = onMarks;
+                rest = upper.Substring(3);
+            }
+            else if (upper.StartsWith("OPEN=", StringComparison.Ordinal))
+            {
+                target = openMarks;
+                rest = upper.Substring(5);
+            }
+            else
+            {
+                return true;
+            }
+
+            isMarkLine = true;
+            string[] parts = rest.Split(new[] { ' ', '\t', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string[] pair = parts[i].Split(',');
+                int column, row;
+                if (pair.Length != 2 || !int.TryParse(pair[0], out column) || !int.TryParse(pair[1], out row) || column < 1 || row < 1)
+                {
+                    error = "Bad cell '" + parts[i] + "' in '@" + body.Trim() + "'. Use column,row counted from 1 (column from the left, row from the top), e.g. '@ON=2,3 5,1'.";
+                    return false;
+                }
+
+                target.Add(new Vector2Int(column, row));
+            }
+
+            return true;
+        }
+
+        /// <summary>Sets initiallyOn on the obstacles named by 1-based (column, row-from-top) marks; each must be of <paramref name="expected"/> type.</summary>
+        private static bool ApplyMarks(List<ObstacleData> list, List<Vector2Int> marks, TileType expected, string label, int gridHeight, out string error)
+        {
+            error = string.Empty;
+            for (int m = 0; m < marks.Count; m++)
+            {
+                var cell = new Vector2Int(marks[m].x - 1, gridHeight - marks[m].y);
+                int index = -1;
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i].position == cell && list[i].tileType == expected)
+                    {
+                        index = i;
+                        break;
+                    }
+                }
+
+                if (index < 0)
+                {
+                    string what = expected == TileType.Door ? "a door (A-I)" : "a toggle switch (a-i)";
+                    error = "@" + label + " cell " + marks[m].x + "," + marks[m].y + " is not " + what + ".";
+                    return false;
+                }
+
+                ObstacleData data = list[index];
+                data.initiallyOn = true;
+                list[index] = data;
+            }
+
             return true;
         }
 

@@ -62,7 +62,7 @@ MonoBehaviour:
     position: {x: 9, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 10, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -74,7 +74,7 @@ MonoBehaviour:
     position: {x: 9, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 10, y: 1}
     linkId: 0
     initiallyOn: 0
@@ -174,11 +174,11 @@ MonoBehaviour:
     position: {x: 10, y: 5}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 6}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 6}
     linkId: 0
     initiallyOn: 0
@@ -194,15 +194,15 @@ MonoBehaviour:
     position: {x: 10, y: 6}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 2, y: 7}
     linkId: 0
     initiallyOn: 0
@@ -254,9 +254,9 @@ MonoBehaviour:
     position: {x: 5, y: 6}
     linkId: 1
     initiallyOn: 1
-  asciiLayout: '###########
+  asciiLayout: '~~~########
 
-    ####.A2...#
+    ~~##.A2...#
 
     ###.P#Q.#.#
 
@@ -266,9 +266,10 @@ MonoBehaviour:
 
     #.######.##
 
-    #........##
+    #........#~
 
-    ###########
+    ##########~
 
     @A=L
     B=R'
+  solutionText: 

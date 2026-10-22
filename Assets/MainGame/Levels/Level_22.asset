@@ -22,11 +22,11 @@ MonoBehaviour:
   catAFacing: 1
   catBFacing: 1
   obstacles:
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -70,11 +70,11 @@ MonoBehaviour:
     position: {x: 11, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 12, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 13, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -380,7 +380,8 @@ MonoBehaviour:
 
     ###.O4##7O.###
 
-    ##############
+    ~~##########~~
 
     @A=D
     B=D'
+  solutionText: 

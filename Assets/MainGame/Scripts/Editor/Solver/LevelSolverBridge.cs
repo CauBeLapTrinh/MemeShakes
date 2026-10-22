@@ -34,7 +34,8 @@ namespace Catshakes.EditorTools
 
                 switch (o.tileType)
                 {
-                    case TileType.Wall: spec.Wall[cell] = true; break;
+                    case TileType.Wall:
+                    case TileType.Void: spec.Wall[cell] = true; break;
                     case TileType.Barrel: spec.Barrels.Add(cell); break;
                     case TileType.SwitchMomentary: spec.Switches.Add(new SwitchSpec { Cell = cell, Link = o.linkId, Toggle = false }); break;
                     case TileType.SwitchToggle: spec.Switches.Add(new SwitchSpec { Cell = cell, Link = o.linkId, Toggle = true, StartsOn = o.initiallyOn }); break;

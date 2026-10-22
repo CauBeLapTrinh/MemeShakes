@@ -38,19 +38,19 @@ MonoBehaviour:
     position: {x: 3, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 4, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 5, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 6, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 7, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -78,19 +78,19 @@ MonoBehaviour:
     position: {x: 3, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 4, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 5, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 6, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 7, y: 1}
     linkId: 0
     initiallyOn: 0
@@ -238,9 +238,10 @@ MonoBehaviour:
 
     #.########.#
 
-    #.P######Q.#
+    #.P#~~~~#Q.#
 
-    ############
+    ####~~~~####
 
     @A=L
     B=R'
+  solutionText: 

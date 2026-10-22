@@ -2899,6 +2899,7 @@ MonoBehaviour:
   wallOuterCorner: {fileID: 21300000, guid: f9a4d36c657e27c4492d4baf766d7a44, type: 3}
   wallStraight: {fileID: 21300000, guid: c89ecd8d62ce5fe40850c17b5468dec7, type: 3}
   wallEndCap: {fileID: 21300000, guid: 8a9b61753e23ed74289a30bda69c2db6, type: 3}
+  wallNoBorder: {fileID: 21300000, guid: 396702249b99243489ca293305af3db3, type: 3}
   barrelPrefab: {fileID: 8616223478394822592, guid: 795ecc30ebfec8d40a89c7c92a63e5d6, type: 3}
   severedHandPrefab: {fileID: 0}
   severedHandScale: 1.3

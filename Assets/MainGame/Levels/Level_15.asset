@@ -22,11 +22,11 @@ MonoBehaviour:
   catAFacing: 1
   catBFacing: 0
   obstacles:
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 0}
     linkId: 0
     initiallyOn: 0
@@ -62,11 +62,11 @@ MonoBehaviour:
     position: {x: 9, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 1}
     linkId: 0
     initiallyOn: 0
@@ -82,11 +82,11 @@ MonoBehaviour:
     position: {x: 9, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 0, y: 2}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 1, y: 2}
     linkId: 0
     initiallyOn: 0
@@ -256,11 +256,12 @@ MonoBehaviour:
 
     ########D#
 
-    ###4#....#
+    ~~#4#....#
 
-    ###.A..#Q#
+    ~~#.A..#Q#
 
-    ##########
+    ~~########
 
     @A=D
     B=U'
+  solutionText: 

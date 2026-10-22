@@ -33,13 +33,15 @@ namespace Catshakes.EditorTools
             Door = 4,
             CatA = 5,
             CatB = 6,
-            Eraser = 7
+            Void = 7,
+            Eraser = 8
         }
 
         private static readonly string[] ToolLabels =
         {
             "Wall (#)", "Barrel (O)", "Switch 1 - hold", "Switch 2 - toggle",
-            "Door (between 2 walls)", "Cat A start (P)", "Cat B start (Q)", "Eraser"
+            "Door (between 2 walls)", "Cat A start (P)", "Cat B start (Q)", "Void (~) - hidden",
+            "Eraser"
         };
 
         private const string LevelFolder = "Assets/MainGame/Levels";
@@ -337,6 +339,11 @@ namespace Catshakes.EditorTools
                 Defer(AddBorderWalls);
             }
 
+            if (GUILayout.Button(new GUIContent("Hide outer walls", "Turns every wall that has no floor, switch, door or cat next to it (also diagonally) into Void, so only a one-cell rim of wall stays visible around the playable area."), GUILayout.Width(110f)))
+            {
+                Defer(HideOuterWalls);
+            }
+
             if (GUILayout.Button("Clear objects", GUILayout.Width(92f)))
             {
                 Defer(ClearObstacles);
@@ -345,7 +352,7 @@ namespace Catshakes.EditorTools
             EditorGUILayout.EndHorizontal();
 
             // Palette
-            tool = (PaintTool)GUILayout.SelectionGrid((int)tool, ToolLabels, 4, GUILayout.Height(46f));
+            tool = (PaintTool)GUILayout.SelectionGrid((int)tool, ToolLabels, 4, GUILayout.Height(66f));
 
             bool usesLink = tool == PaintTool.SwitchHold || tool == PaintTool.SwitchToggle || tool == PaintTool.Door;
             EditorGUILayout.BeginHorizontal();
@@ -416,7 +423,7 @@ namespace Catshakes.EditorTools
 
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.LabelField(
-                    "# wall  . empty  P cat A  Q cat B  O barrel  1-9 switch(hold)  a-i switch(toggle)  A-I door.  (ASCII cannot store 'Starts ON' or 'Starts open'.)",
+                    "# wall  ~ void (hidden)  . empty  P cat A  Q cat B  O barrel  1-9 switch(hold)  a-i switch(toggle)  A-I door.  Last lines: @A=R B=L facing (hand starts next to the cat), @ON=col,row ... toggle starts ON, @OPEN=col,row ... door starts open (col from left, row from top, from 1).",
                     EditorStyles.miniLabel);
             }
 
@@ -584,6 +591,10 @@ namespace Catshakes.EditorTools
                     color = new Color(0.12f, 0.12f, 0.14f);
                     text = "#";
                     return true;
+                case TileType.Void:
+                    color = new Color(0.04f, 0.07f, 0.16f);
+                    text = "~";
+                    return true;
                 case TileType.Barrel:
                     color = new Color(0.62f, 0.40f, 0.20f);
                     text = "O";
@@ -633,6 +644,7 @@ namespace Catshakes.EditorTools
             switch (data.tileType)
             {
                 case TileType.Wall: tool = PaintTool.Wall; break;
+                case TileType.Void: tool = PaintTool.Void; break;
                 case TileType.Barrel: tool = PaintTool.Barrel; break;
                 case TileType.SwitchMomentary: tool = PaintTool.SwitchHold; break;
                 case TileType.SwitchToggle: tool = PaintTool.SwitchToggle; break;
@@ -846,6 +858,71 @@ namespace Catshakes.EditorTools
             }
 
             Commit();
+        }
+
+        /// <summary>
+        /// Turns every wall that has no playable cell around it (the 8 neighbours are all wall, void or outside the grid) into
+        /// Void, so only the one-cell rim of wall next to the playable area is drawn.
+        /// </summary>
+        private void HideOuterWalls()
+        {
+            if (level == null || so == null)
+            {
+                return;
+            }
+
+            so.Update();
+            int width = so.FindProperty("width").intValue;
+            int height = so.FindProperty("height").intValue;
+            SerializedProperty list = so.FindProperty("obstacles");
+
+            var blocking = new HashSet<Vector2Int>();
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                SerializedProperty element = list.GetArrayElementAtIndex(i);
+                TileType type = (TileType)element.FindPropertyRelative("tileType").enumValueIndex;
+                if (type == TileType.Wall || type == TileType.Void)
+                {
+                    blocking.Add(element.FindPropertyRelative("position").vector2IntValue);
+                }
+            }
+
+            int hidden = 0;
+            for (int i = 0; i < list.arraySize; i++)
+            {
+                SerializedProperty element = list.GetArrayElementAtIndex(i);
+                if ((TileType)element.FindPropertyRelative("tileType").enumValueIndex != TileType.Wall)
+                {
+                    continue;
+                }
+
+                Vector2Int p = element.FindPropertyRelative("position").vector2IntValue;
+                bool touchesPlayArea = false;
+                for (int dx = -1; dx <= 1 && !touchesPlayArea; dx++)
+                {
+                    for (int dy = -1; dy <= 1; dy++)
+                    {
+                        var n = new Vector2Int(p.x + dx, p.y + dy);
+                        if ((dx != 0 || dy != 0) && n.x >= 0 && n.y >= 0 && n.x < width && n.y < height && !blocking.Contains(n))
+                        {
+                            touchesPlayArea = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!touchesPlayArea)
+                {
+                    element.FindPropertyRelative("tileType").enumValueIndex = (int)TileType.Void;
+                    hidden++;
+                }
+            }
+
+            SetStatus(hidden > 0 ? hidden + " outer wall(s) turned into Void. (Ctrl+Z undoes it.)" : "No outer walls to hide.", MessageType.Info);
+            if (hidden > 0)
+            {
+                Commit();
+            }
         }
 
         private void ClearObstacles()
@@ -1099,7 +1176,7 @@ namespace Catshakes.EditorTools
             var inner = new Rect(cell.x + inset, cell.y + inset, cell.width - 2f * inset, cell.height - 2f * inset);
 
             ObstacleData data;
-            bool blocked = map.TryGetValue(hand, out data) && (data.tileType == TileType.Wall || data.tileType == TileType.Barrel);
+            bool blocked = map.TryGetValue(hand, out data) && (data.tileType == TileType.Wall || data.tileType == TileType.Void || data.tileType == TileType.Barrel);
             Color fill = blocked ? new Color(0.9f, 0.1f, 0.1f, 0.85f) : new Color(color.r, color.g, color.b, 0.6f);
             EditorGUI.DrawRect(inner, fill);
             GUI.Label(inner, "h", cellLabel);
@@ -1568,7 +1645,7 @@ namespace Catshakes.EditorTools
             var kept = new List<ObstacleData>();
             foreach (ObstacleData o in level.Obstacles)
             {
-                if (o.tileType != TileType.Wall && o.tileType != TileType.Empty && isFloor(o.position.x, o.position.y))
+                if (o.tileType != TileType.Wall && o.tileType != TileType.Void && o.tileType != TileType.Empty && isFloor(o.position.x, o.position.y))
                 {
                     kept.Add(o);
                 }
@@ -1853,6 +1930,8 @@ namespace Catshakes.EditorTools
                 }
             }
 
+            var onMarks = new List<string>();
+            var openMarks = new List<string>();
             SerializedProperty list = so.FindProperty("obstacles");
             for (int i = 0; i < list.arraySize; i++)
             {
@@ -1865,9 +1944,17 @@ namespace Catshakes.EditorTools
 
                 TileType type = (TileType)element.FindPropertyRelative("tileType").enumValueIndex;
                 int link = Mathf.Clamp(element.FindPropertyRelative("linkId").intValue, 1, 9);
+                if (element.FindPropertyRelative("initiallyOn").boolValue)
+                {
+                    string mark = (p.x + 1) + "," + (height - p.y);
+                    if (type == TileType.SwitchToggle) onMarks.Add(mark);
+                    else if (type == TileType.Door) openMarks.Add(mark);
+                }
+
                 switch (type)
                 {
                     case TileType.Wall: grid[p.x, p.y] = '#'; break;
+                    case TileType.Void: grid[p.x, p.y] = '~'; break;
                     case TileType.Barrel: grid[p.x, p.y] = 'O'; break;
                     case TileType.SwitchMomentary: grid[p.x, p.y] = (char)('0' + link); break;
                     case TileType.SwitchToggle: grid[p.x, p.y] = (char)('a' + link - 1); break;
@@ -1901,6 +1988,8 @@ namespace Catshakes.EditorTools
 
             builder.Append("@A=").Append(FacingLetter(so.FindProperty("catAFacing").enumValueIndex));
             builder.Append(" B=").Append(FacingLetter(so.FindProperty("catBFacing").enumValueIndex));
+            if (onMarks.Count > 0) builder.Append("\n@ON=").Append(string.Join(" ", onMarks));
+            if (openMarks.Count > 0) builder.Append("\n@OPEN=").Append(string.Join(" ", openMarks));
             return builder.ToString();
         }
 
@@ -1930,6 +2019,7 @@ namespace Catshakes.EditorTools
             switch (paintTool)
             {
                 case PaintTool.Wall: return TileType.Wall;
+                case PaintTool.Void: return TileType.Void;
                 case PaintTool.Barrel: return TileType.Barrel;
                 case PaintTool.SwitchHold: return TileType.SwitchMomentary;
                 case PaintTool.SwitchToggle: return TileType.SwitchToggle;

@@ -242,23 +242,23 @@ MonoBehaviour:
     position: {x: 4, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 5, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 6, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 7, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 8, y: 7}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
+  - tileType: 6
     position: {x: 9, y: 7}
     linkId: 0
     initiallyOn: 0
@@ -314,7 +314,7 @@ MonoBehaviour:
     position: {x: 7, y: 2}
     linkId: 0
     initiallyOn: 0
-  asciiLayout: '##############
+  asciiLayout: '#####~~~~~####
 
     #.1.#######.Q#
 
@@ -332,3 +332,4 @@ MonoBehaviour:
 
     @A=L
     B=L'
+  solutionText: 

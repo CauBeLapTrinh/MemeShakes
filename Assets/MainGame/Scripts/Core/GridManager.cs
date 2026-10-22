@@ -11,6 +11,7 @@ namespace Catshakes
     ///
     /// Rules:
     ///  - A hand moves one cell per call. Moving onto the cell behind the hand retracts the arm.
+    ///  - A void cell (no floor, nothing drawn) blocks exactly like a wall.
     ///  - An arm cannot enter walls, closed doors, or any cell occupied by a cat root or arm segment,
     ///    except the cell of the other cat's extended hand, which is the winning handshake.
     ///  - A barrel in the target cell is pushed one cell further if that cell is free.
@@ -49,6 +50,8 @@ namespace Catshakes
         [SerializeField] private Sprite wallStraight;
         [Tooltip("Border on three sides (drawn on the left, top and bottom edges; open to the right).")]
         [SerializeField] private Sprite wallEndCap;
+        [Tooltip("Plain stone with no border, for a wall buried among walls (no open side). Leave empty to keep the prefab's look.")]
+        [SerializeField] private Sprite wallNoBorder;
 
         [SerializeField] private Barrel barrelPrefab;
         [Tooltip("Optional. Prefab of the severed hand (a Barrel component). When empty, the barrel prefab is used with the cat's hand sprite.")]
@@ -63,7 +66,9 @@ namespace Catshakes
         [SerializeField] private CatArmController catA;
         [SerializeField] private CatArmController catB;
 
+        // Every blocking cell: walls and voids. Voids are also listed in 'voids' (nothing is drawn there).
         private readonly HashSet<Vector2Int> walls = new HashSet<Vector2Int>();
+        private readonly HashSet<Vector2Int> voids = new HashSet<Vector2Int>();
         private readonly List<Barrel> barrels = new List<Barrel>();
         private readonly List<Barrel> severedHands = new List<Barrel>();
         private readonly Dictionary<Vector2Int, Barrel> barrelsByCell = new Dictionary<Vector2Int, Barrel>();
@@ -215,6 +220,7 @@ namespace Catshakes
             Vector3 origin = gridOrigin != null ? gridOrigin.position : transform.position;
             coords = new GridSpace(origin, cellSize, level.Width, level.Height);
             EnsureLevelRoot();
+            CollectVoids(level);
 
             if (!BuildFloor() || !BuildObstacles(level))
             {
@@ -258,6 +264,7 @@ namespace Catshakes
 
             spawnedObjects.Clear();
             walls.Clear();
+            voids.Clear();
             barrels.Clear();
             severedHands.Clear();
             barrelsByCell.Clear();
@@ -1006,6 +1013,20 @@ namespace Catshakes
             levelRoot = rootObject.transform;
         }
 
+        /// <summary>Records the void cells first (they block like walls), because the floor is built before the obstacles.</summary>
+        private void CollectVoids(LevelDataSO level)
+        {
+            IReadOnlyList<ObstacleData> obstacles = level.Obstacles;
+            for (int i = 0; i < obstacles.Count; i++)
+            {
+                if (obstacles[i].tileType == TileType.Void)
+                {
+                    voids.Add(obstacles[i].position);
+                    walls.Add(obstacles[i].position);
+                }
+            }
+        }
+
         private bool BuildFloor()
         {
             if (floorTilePrefab == null)
@@ -1017,6 +1038,11 @@ namespace Catshakes
             {
                 for (int x = 0; x < coords.Width; x++)
                 {
+                    if (voids.Contains(new Vector2Int(x, y)))
+                    {
+                        continue;
+                    }
+
                     Vector3 position = coords.GridToWorld(new Vector2Int(x, y));
                     GameObject tile = Instantiate(floorTilePrefab, position, Quaternion.identity, levelRoot);
                     spawnedObjects.Add(tile);
@@ -1026,16 +1052,16 @@ namespace Catshakes
             return true;
         }
 
-        /// <summary>True when the cell is outside the board or is not a wall (floor, door, switch...).</summary>
+        /// <summary>True when the cell is outside the board, a void, or not a wall (floor, door, switch...): a wall draws its border toward it.</summary>
         private bool IsOpenGround(Vector2Int cell)
         {
-            return !coords.IsInside(cell) || !walls.Contains(cell);
+            return !coords.IsInside(cell) || voids.Contains(cell) || !walls.Contains(cell);
         }
 
         /// <summary>
         /// Gives a wall the border picture that matches the sides where it meets open ground. One side, two neighbouring
-        /// sides (corner), two opposite sides or three sides (end cap) get a picture; a wall buried among walls (or
-        /// a lone pillar with four open sides) keeps the plain look. The pictures are drawn with the border on fixed edges
+        /// sides (corner), two opposite sides or three sides (end cap) get a picture; a wall buried among walls gets the
+        /// borderless picture, and a lone pillar with four open sides keeps the plain look. The pictures are drawn with the border on fixed edges
         /// and turned or flipped here. Call it once every wall of the level is known.
         /// </summary>
         private void ApplyWallBorder(GameObject wall, Vector2Int cell)
@@ -1045,7 +1071,19 @@ namespace Catshakes
             bool left = IsOpenGround(cell + Vector2Int.left);
             bool right = IsOpenGround(cell + Vector2Int.right);
             int sides = (up ? 1 : 0) + (down ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
-            if (sides == 0 || sides == 4)
+            if (sides == 0)
+            {
+                SpriteRenderer plain = wall.GetComponent<SpriteRenderer>();
+                if (wallNoBorder != null && plain != null)
+                {
+                    plain.sprite = wallNoBorder;
+                    plain.color = Color.white;
+                }
+
+                return;
+            }
+
+            if (sides == 4)
             {
                 return;
             }
@@ -1128,6 +1166,10 @@ namespace Catshakes
 
                 switch (data.tileType)
                 {
+                    case TileType.Void:
+                        // Already recorded by CollectVoids; nothing is spawned.
+                        break;
+
                     case TileType.Wall:
                     {
                         if (!RequirePrefab(wallPrefab, "wallPrefab"))
