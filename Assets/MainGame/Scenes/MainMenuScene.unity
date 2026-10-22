@@ -282,6 +282,17 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4c1ae6ca266c1e442a23d5ab5508c394, type: 2}
   - {fileID: 11400000, guid: a30a489b2f5c366408b1b8598ef7ef08, type: 2}
   - {fileID: 11400000, guid: 02627efeb7d62ac45b7bac3c9f960e93, type: 2}
+  - {fileID: 11400000, guid: 36dd47881835d954197e19020ebc19c1, type: 2}
+  - {fileID: 11400000, guid: d479de71fa6177a469ff730f7dd9172a, type: 2}
+  - {fileID: 11400000, guid: c734307d33b2c1c40b55c79c69c28328, type: 2}
+  - {fileID: 11400000, guid: d7896c6fa3463b547abc3e556c106ddb, type: 2}
+  - {fileID: 11400000, guid: d75f4a0969377654cb70a24cd7f4524d, type: 2}
+  - {fileID: 11400000, guid: 4decbd32b62bc6e48b71fc481b351585, type: 2}
+  - {fileID: 11400000, guid: a5ce080d0240e064ebe1d9ae005d4b96, type: 2}
+  - {fileID: 11400000, guid: ed22cd4cef8164443ab8154f5c95abf3, type: 2}
+  - {fileID: 11400000, guid: b527ce6ffa8f5d84b978057f0dc5745d, type: 2}
+  - {fileID: 11400000, guid: 17785627700e35b49b9d78be45b5641b, type: 2}
+  - {fileID: 11400000, guid: c0abd86cd9b741549bb728998c287b50, type: 2}
   unlockAllLevels: 0
   fadeGroup: {fileID: 970321094}
   fadeDuration: 0.25
@@ -3334,6 +3345,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
+      m_Priority: 0
     - m_Name: Look
       m_Type: 0
       m_ExpectedControlType: Vector2
@@ -3342,6 +3354,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
+      m_Priority: 0
     - m_Name: Fire
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3350,6 +3363,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     m_Bindings:
     - m_Name: 
       m_Id: 978bfe49-cc26-4a3d-ab7b-7d7a29327403
@@ -3523,6 +3537,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: Submit
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3531,6 +3546,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: Cancel
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3539,6 +3555,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: Point
       m_Type: 2
       m_ExpectedControlType: Vector2
@@ -3547,6 +3564,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
+      m_Priority: 0
     - m_Name: Click
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3555,6 +3573,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
+      m_Priority: 0
     - m_Name: ScrollWheel
       m_Type: 2
       m_ExpectedControlType: Vector2
@@ -3563,6 +3582,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: MiddleClick
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3571,6 +3591,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: RightClick
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3579,6 +3600,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: TrackedDevicePosition
       m_Type: 2
       m_ExpectedControlType: Vector3
@@ -3587,6 +3609,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     - m_Name: TrackedDeviceOrientation
       m_Type: 2
       m_ExpectedControlType: Quaternion
@@ -3595,6 +3618,7 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
+      m_Priority: 0
     m_Bindings:
     - m_Name: Gamepad
       m_Id: 809f371f-c5e2-4e7a-83a1-d867598f40dd

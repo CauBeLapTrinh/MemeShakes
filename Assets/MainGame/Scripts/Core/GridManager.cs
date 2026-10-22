@@ -176,6 +176,30 @@ namespace Catshakes
             }
         }
 
+        /// <summary>Debug menu: finishes the level as if the hands had met.</summary>
+        public void DebugForceWin()
+        {
+            if (!IsLevelLoaded || isWon || isLost)
+            {
+                return;
+            }
+
+            isWon = true;
+            Won?.Invoke();
+        }
+
+        /// <summary>Debug menu: loses the level as if a door had crushed a cat.</summary>
+        public void DebugForceLose()
+        {
+            if (!IsLevelLoaded || isWon || isLost)
+            {
+                return;
+            }
+
+            isLost = true;
+            Lost?.Invoke();
+        }
+
         public CatArmController GetCat(CatId id)
         {
             return id == CatId.CatA ? catA : catB;

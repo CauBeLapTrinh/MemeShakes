@@ -313,6 +313,32 @@ namespace Catshakes
 #endif
         }
 
+        /// <summary>Debug menu: turns the "Unlock All Levels" testing toggle on or off at runtime.</summary>
+        public void SetUnlockAllLevels(bool value)
+        {
+            unlockAllLevels = value;
+        }
+
+        /// <summary>Debug menu: opens the first <paramref name="count"/> levels and saves it as progress.</summary>
+        public void SetUnlockedLevelCount(int count)
+        {
+            PlayerPrefs.SetInt(UnlockedLevelsKey, Mathf.Clamp(count, 1, Mathf.Max(1, LevelCount)));
+            PlayerPrefs.Save();
+        }
+
+        /// <summary>Debug menu: jumps to a level whatever its lock state, keeping progress untouched.</summary>
+        public void DebugPlayLevel(int levelIndex)
+        {
+            if (!IsValidLevelIndex(levelIndex))
+            {
+                Debug.LogError("GameSceneManager.DebugPlayLevel: invalid level index " + levelIndex + ".", this);
+                return;
+            }
+
+            IsSpeedrunActive = false;
+            BeginLevel(levelIndex);
+        }
+
         /// <summary>Deletes saved progress and the best speedrun time.</summary>
         public void ResetSavedProgress()
         {
