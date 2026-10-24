@@ -52,6 +52,8 @@ namespace Catshakes
         [SerializeField] private Sprite wallEndCap;
         [Tooltip("Plain stone with no border, for a wall buried among walls (no open side). Leave empty to keep the prefab's look.")]
         [SerializeField] private Sprite wallNoBorder;
+        [Tooltip("Border on all four sides, for a lone wall with open ground all around. Leave empty to keep the prefab's look.")]
+        [SerializeField] private Sprite wallFullBorder;
 
         [SerializeField] private Barrel barrelPrefab;
         [Tooltip("Optional. Prefab of the severed hand (a Barrel component). When empty, the barrel prefab is used with the cat's hand sprite.")]
@@ -896,7 +898,7 @@ namespace Catshakes
             Vector2Int cell = cat.HandPosition;
             Barrel hand = Instantiate(prefab, levelRoot);
             hand.Initialize(coords, cell);
-            hand.SetVisual(hasDedicatedPrefab ? null : cat.HandSprite, cat.HandAngle, cat.HandScale * severedHandScale);
+            hand.SetVisual(hasDedicatedPrefab ? null : cat.SeveredHandSprite, cat.HandAngle, cat.HandScale * severedHandScale);
             hand.PlayAppear(0.2f);
 
             severedHands.Add(hand);
@@ -1085,7 +1087,7 @@ namespace Catshakes
         /// <summary>
         /// Gives a wall the border picture that matches the sides where it meets open ground. One side, two neighbouring
         /// sides (corner), two opposite sides or three sides (end cap) get a picture; a wall buried among walls gets the
-        /// borderless picture, and a lone pillar with four open sides keeps the plain look. The pictures are drawn with the border on fixed edges
+        /// borderless picture, and a lone pillar with four open sides gets the four-border picture. The pictures are drawn with the border on fixed edges
         /// and turned or flipped here. Call it once every wall of the level is known.
         /// </summary>
         private void ApplyWallBorder(GameObject wall, Vector2Int cell)
@@ -1095,20 +1097,17 @@ namespace Catshakes
             bool left = IsOpenGround(cell + Vector2Int.left);
             bool right = IsOpenGround(cell + Vector2Int.right);
             int sides = (up ? 1 : 0) + (down ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
-            if (sides == 0)
+            if (sides == 0 || sides == 4)
             {
+                // Symmetric pictures: no turning needed.
+                Sprite symmetric = sides == 0 ? wallNoBorder : wallFullBorder;
                 SpriteRenderer plain = wall.GetComponent<SpriteRenderer>();
-                if (wallNoBorder != null && plain != null)
+                if (symmetric != null && plain != null)
                 {
-                    plain.sprite = wallNoBorder;
+                    plain.sprite = symmetric;
                     plain.color = Color.white;
                 }
 
-                return;
-            }
-
-            if (sides == 4)
-            {
                 return;
             }
 

@@ -19,6 +19,9 @@ namespace Catshakes
         [Tooltip("Victory effect prefab (Assets/MainGame/Effects/WinEffect). A generated effect is used when empty.")]
         [SerializeField] private WinEffect winEffectPrefab;
 
+        [Tooltip("Paper confetti fired from both bottom corners of the screen towards the middle on a win.")]
+        [SerializeField] private bool playConfettiCannons = true;
+
         [Tooltip("Sprite shown when the two hands meet (two hands clasped, Handshakes.png). It replaces both hand sprites. When empty, the hands just meet in the middle of the cell.")]
         [SerializeField] private Sprite handshakeSprite;
 
@@ -345,6 +348,11 @@ namespace Catshakes
         {
             Vector3 handshakePosition = gridManager.Coords.GridToWorld(gridManager.GetCat(CatId.CatA).HandPosition);
             WinEffect.Spawn(winEffectPrefab, handshakePosition, gridManager.Coords.CellSize, winEffectDuration);
+            if (playConfettiCannons)
+            {
+                ConfettiCannons.Fire(Camera.main);
+            }
+
             if (handshakeSprite != null)
             {
                 ShowHandshake(handshakePosition);

@@ -1,0 +1,209 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab704ba333b1c44a82e76b788de1dbe, type: 3}
+  m_Name: Level_50
+  m_EditorClassIdentifier: Assembly-CSharp::Catshakes.LevelDataSO
+  displayName: Level 50
+  width: 8
+  height: 7
+  catAStart: {x: 3, y: 3}
+  catBStart: {x: 3, y: 4}
+  catAMaxSteps: 2
+  catBMaxSteps: 5
+  catAFacing: 2
+  catBFacing: 0
+  obstacles:
+  - tileType: 1
+    position: {x: 2, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 2, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 3, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 4, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 5, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 7, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 7, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 7, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 5, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 4, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 3, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 2, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 2, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 3, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 7, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 7, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 5, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 4, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 4, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 3, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 5, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 7, y: 0}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 1, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 6}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 7, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 1, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 5, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  asciiLayout: '~~######
+
+    ~##....#
+
+    ##.Q.O##
+
+    #..P..#~
+
+    #O.####~
+
+    #.##~~~~
+
+    ###~~~~~
+
+    @A=L
+    B=U'
+  solutionText: 

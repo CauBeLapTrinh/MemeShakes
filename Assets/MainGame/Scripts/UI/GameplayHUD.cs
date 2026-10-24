@@ -44,7 +44,7 @@ namespace Catshakes
         [SerializeField] private string stepsFormat = "{0}/{1}";
         [SerializeField] private string activeCatFormat = "Controlling: {0}";
         [Tooltip("Next to the \"Level\" picture. {0} = level number (the same as on the level select buttons).")]
-        [SerializeField] private string levelNumberFormat = "{0}";
+        [SerializeField] private string levelNumberFormat = "Level {0}";
         [SerializeField] private string catAName = "Cat A";
         [SerializeField] private string catBName = "Cat B";
         [SerializeField] private string winTitle = "Handshake!";

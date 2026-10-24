@@ -13,25 +13,17 @@ MonoBehaviour:
   m_Name: Level_38
   m_EditorClassIdentifier: Assembly-CSharp::Catshakes.LevelDataSO
   displayName: Level 38
-  width: 10
-  height: 5
-  catAStart: {x: 1, y: 1}
-  catBStart: {x: 8, y: 2}
-  catAMaxSteps: 8
-  catBMaxSteps: 8
-  catAFacing: 3
-  catBFacing: 1
+  width: 7
+  height: 6
+  catAStart: {x: 2, y: 4}
+  catBStart: {x: 4, y: 4}
+  catAMaxSteps: 4
+  catBMaxSteps: 4
+  catAFacing: 2
+  catBFacing: 3
   obstacles:
   - tileType: 1
-    position: {x: 0, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 2, y: 4}
+    position: {x: 3, y: 5}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
@@ -39,11 +31,15 @@ MonoBehaviour:
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 4, y: 4}
+    position: {x: 4, y: 5}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 5, y: 4}
+    position: {x: 5, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 5}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
@@ -51,47 +47,31 @@ MonoBehaviour:
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 7, y: 4}
+    position: {x: 6, y: 3}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 8, y: 4}
+    position: {x: 6, y: 2}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 9, y: 4}
+    position: {x: 2, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 4}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
     position: {x: 0, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 3
-    position: {x: 2, y: 3}
-    linkId: 1
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 3, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 5, y: 3}
-    linkId: 2
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 6, y: 3}
-    linkId: 1
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 3}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
@@ -102,40 +82,8 @@ MonoBehaviour:
     position: {x: 1, y: 2}
     linkId: 0
     initiallyOn: 0
-  - tileType: 3
-    position: {x: 2, y: 2}
-    linkId: 2
-    initiallyOn: 0
   - tileType: 1
-    position: {x: 5, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 6, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 1}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 5, y: 1}
-    linkId: 2
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 6, y: 1}
-    linkId: 1
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 1}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 0}
+    position: {x: 1, y: 1}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
@@ -159,31 +107,57 @@ MonoBehaviour:
     linkId: 0
     initiallyOn: 0
   - tileType: 1
+    position: {x: 5, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 5, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 6, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
     position: {x: 6, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
-    position: {x: 7, y: 0}
+  - tileType: 6
+    position: {x: 0, y: 1}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 0}
+  - tileType: 6
+    position: {x: 0, y: 0}
     linkId: 0
     initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 0}
+  - tileType: 2
+    position: {x: 3, y: 3}
     linkId: 0
     initiallyOn: 0
-  asciiLayout: '##########
+  - tileType: 2
+    position: {x: 3, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 2, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 4, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  asciiLayout: '#######
 
-    ##1#.BA.##
+    #.P#Q.#
 
-    ##2..##.Q#
+    #..O..#
 
-    #P...BA..#
+    ##OOO##
 
-    ##########
+    ~#...#~
 
-    @A=R
-    B=D'
+    ~#####~
+
+    @A=L
+    B=R'
   solutionText: 

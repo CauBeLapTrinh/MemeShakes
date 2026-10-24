@@ -13,207 +13,15 @@ MonoBehaviour:
   m_Name: Level_34
   m_EditorClassIdentifier: Assembly-CSharp::Catshakes.LevelDataSO
   displayName: Level 34
-  width: 12
+  width: 10
   height: 6
-  catAStart: {x: 1, y: 4}
-  catBStart: {x: 10, y: 1}
-  catAMaxSteps: 14
-  catBMaxSteps: 14
+  catAStart: {x: 1, y: 1}
+  catBStart: {x: 8, y: 2}
+  catAMaxSteps: 5
+  catBMaxSteps: 6
   catAFacing: 3
-  catBFacing: 2
+  catBFacing: 1
   obstacles:
-  - tileType: 1
-    position: {x: 0, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 2, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 3, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 4, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 5, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 6, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 7, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 10, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 11, y: 5}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 3, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 3
-    position: {x: 4, y: 4}
-    linkId: 1
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 5, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 6, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 7, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 10, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 11, y: 4}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 3, y: 3}
-    linkId: 3
-    initiallyOn: 0
-  - tileType: 3
-    position: {x: 5, y: 3}
-    linkId: 2
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 6, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 7, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 9, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 10, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 11, y: 3}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 3, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 4, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 5, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 6, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 7, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 8, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 4
-    position: {x: 9, y: 2}
-    linkId: 3
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 10, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 11, y: 2}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 0, y: 1}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 1, y: 1}
-    linkId: 0
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 5, y: 1}
-    linkId: 2
-    initiallyOn: 0
-  - tileType: 5
-    position: {x: 7, y: 1}
-    linkId: 1
-    initiallyOn: 0
-  - tileType: 1
-    position: {x: 11, y: 1}
-    linkId: 0
-    initiallyOn: 0
   - tileType: 1
     position: {x: 0, y: 0}
     linkId: 0
@@ -255,25 +63,153 @@ MonoBehaviour:
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 10, y: 0}
+    position: {x: 9, y: 1}
     linkId: 0
     initiallyOn: 0
   - tileType: 1
-    position: {x: 11, y: 0}
+    position: {x: 9, y: 2}
     linkId: 0
     initiallyOn: 0
-  asciiLayout: '############
+  - tileType: 1
+    position: {x: 9, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 8, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 8, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 8, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 7, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 5, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 4, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 3, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 3, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 2, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 1, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 3}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 0, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 7, y: 1}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 2
+    position: {x: 7, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 6, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 1
+    position: {x: 5, y: 2}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 3
+    position: {x: 2, y: 4}
+    linkId: 1
+    initiallyOn: 0
+  - tileType: 3
+    position: {x: 4, y: 2}
+    linkId: 2
+    initiallyOn: 0
+  - tileType: 5
+    position: {x: 6, y: 1}
+    linkId: 2
+    initiallyOn: 0
+  - tileType: 5
+    position: {x: 6, y: 3}
+    linkId: 1
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 9, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 9, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 5, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 4, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 5}
+    linkId: 0
+    initiallyOn: 0
+  - tileType: 6
+    position: {x: 0, y: 4}
+    linkId: 0
+    initiallyOn: 0
+  asciiLayout: '~###~~###~
 
-    #P.#1#######
+    ~#1####.#~
 
-    ##.C.2######
+    ##....A.##
 
-    ##.######c##
+    #...2##OQ#
 
-    ##...B.A..Q#
+    #P....BO.#
 
-    ############
+    ##########
 
     @A=R
-    B=L'
+    B=D'
   solutionText: 

@@ -293,7 +293,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b527ce6ffa8f5d84b978057f0dc5745d, type: 2}
   - {fileID: 11400000, guid: 17785627700e35b49b9d78be45b5641b, type: 2}
   - {fileID: 11400000, guid: c0abd86cd9b741549bb728998c287b50, type: 2}
-  unlockAllLevels: 0
+  - {fileID: 11400000, guid: 7c7642814c7aed247bf5cc0661ca1948, type: 2}
+  - {fileID: 11400000, guid: b0fac15d66514564fb7ba6981a0b8263, type: 2}
+  - {fileID: 11400000, guid: 238ed81d659ba72438accc72f160c5fb, type: 2}
+  - {fileID: 11400000, guid: 8f339ad714cb2d9479ce18e92b02b38b, type: 2}
+  - {fileID: 11400000, guid: 241539cda9e7c024dbe6185353a41321, type: 2}
+  - {fileID: 11400000, guid: 8a5ddac664cd6994b8df0b2466841e99, type: 2}
+  - {fileID: 11400000, guid: 69d748a94a2f0cc48bd73e49b337a3e9, type: 2}
+  - {fileID: 11400000, guid: 053246a724a1df14ebc777a316db3949, type: 2}
+  - {fileID: 11400000, guid: ad34975e92894aa46917870e7dc7b5c6, type: 2}
+  unlockAllLevels: 1
   fadeGroup: {fileID: 970321094}
   fadeDuration: 0.25
   levelTransitionFadeDuration: 0.4
@@ -3345,7 +3354,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
-      m_Priority: 0
     - m_Name: Look
       m_Type: 0
       m_ExpectedControlType: Vector2
@@ -3354,7 +3362,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
-      m_Priority: 0
     - m_Name: Fire
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3363,7 +3370,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     m_Bindings:
     - m_Name: 
       m_Id: 978bfe49-cc26-4a3d-ab7b-7d7a29327403
@@ -3537,7 +3543,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: Submit
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3546,7 +3551,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: Cancel
       m_Type: 1
       m_ExpectedControlType: Button
@@ -3555,7 +3559,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: Point
       m_Type: 2
       m_ExpectedControlType: Vector2
@@ -3564,7 +3567,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
-      m_Priority: 0
     - m_Name: Click
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3573,7 +3575,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 1
-      m_Priority: 0
     - m_Name: ScrollWheel
       m_Type: 2
       m_ExpectedControlType: Vector2
@@ -3582,7 +3583,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: MiddleClick
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3591,7 +3591,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: RightClick
       m_Type: 2
       m_ExpectedControlType: Button
@@ -3600,7 +3599,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: TrackedDevicePosition
       m_Type: 2
       m_ExpectedControlType: Vector3
@@ -3609,7 +3607,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     - m_Name: TrackedDeviceOrientation
       m_Type: 2
       m_ExpectedControlType: Quaternion
@@ -3618,7 +3615,6 @@ MonoBehaviour:
       m_Interactions: 
       m_SingletonActionBindings: []
       m_Flags: 0
-      m_Priority: 0
     m_Bindings:
     - m_Name: Gamepad
       m_Id: 809f371f-c5e2-4e7a-83a1-d867598f40dd
@@ -9944,6 +9940,12 @@ MonoBehaviour:
   contentRoot: {fileID: 1679035663}
   levelButtonPrefab: {fileID: 1588215562260236859, guid: b9dcce7f0e62c384b963c82c41c23168, type: 3}
   slotCount: 30
+  pageGap: 160
+  clipPadding: 50
+  dotSize: 22
+  dotSpacing: 18
+  dotActiveScale: 1.5
+  dotsOffsetY: 45
 --- !u!224 &1679035663
 RectTransform:
   m_ObjectHideFlags: 0

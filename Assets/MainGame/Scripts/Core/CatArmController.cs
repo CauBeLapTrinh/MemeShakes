@@ -74,6 +74,7 @@ namespace Catshakes
         private Vector3 bodyBaseScale = Vector3.one;
         private bool scalesCaptured;
         private Sprite alignedHandSprite;
+        private Sprite centeredHandSprite;
         private Material armTextureMaterial;
         private readonly List<LineRenderer> armRuns = new List<LineRenderer>();
         private readonly List<SpriteRenderer> armElbows = new List<SpriteRenderer>();
@@ -124,6 +125,29 @@ namespace Catshakes
 
                 SpriteRenderer handRenderer = handVisual.GetComponentInChildren<SpriteRenderer>();
                 return handRenderer != null ? handRenderer.sprite : null;
+            }
+        }
+
+        /// <summary>
+        /// The hand sprite pivoted on the hand itself instead of on the whole picture. A severed hand sits alone on its cell
+        /// like a crate, so it must be centred there; the arm's hand is offset towards the wrist on purpose.
+        /// </summary>
+        public Sprite SeveredHandSprite
+        {
+            get
+            {
+                if (handSprite == null)
+                {
+                    return HandSprite;
+                }
+
+                if (centeredHandSprite == null)
+                {
+                    centeredHandSprite = Sprite.Create(handSprite.texture, handSprite.textureRect, new Vector2(0.5f, 0.5f), handSprite.pixelsPerUnit);
+                    centeredHandSprite.name = handSprite.name + "_Centered";
+                }
+
+                return centeredHandSprite;
             }
         }
 
@@ -338,6 +362,7 @@ namespace Catshakes
             {
                 handSprite = skin.hand;
                 alignedHandSprite = null;
+                centeredHandSprite = null;
             }
 
             if (skin.straightArm != null)
